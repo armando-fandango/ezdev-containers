@@ -1,0 +1,124 @@
+ARG from
+FROM ${from} as base
+LABEL org.opencontainers.image.authors="armando.ucf@gmail.com"
+
+ARG duid=9000
+ARG dgid=9000
+ARG uname=ezdev
+ARG gname=ezdev
+
+ENV DEBIAN_FRONTEND=noninteractive
+#ENV TZ=UTC
+#RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+SHELL ["/bin/bash", "-c"]
+
+USER root
+
+RUN if id "ubuntu" >/dev/null 2>&1; then userdel -r ubuntu; fi \
+  && if getent group "ubuntu" >/dev/null 2>&1; then groupdel ubuntu; fi
+
+ENTRYPOINT ["/opt/container-scripts/entrypoint-root.sh"]
+CMD ["/bin/bash"]
+
+FROM base as gosu-build
+
+ENV GOSU_VERSION 1.17
+RUN set -eux ; \
+  # save list of currently installed packages for later so we can clean up
+	savedAptMark="$(apt-mark showmanual)" ; \
+	apt-get update ; \
+	apt-get install -y --no-install-recommends ca-certificates gnupg wget; \
+	rm -rf /var/lib/apt/lists/* ; \
+	\
+	dpkgArch="$(dpkg --print-architecture | awk -F- '{ print $NF }')" ; \
+	wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch" ; \
+	wget -O /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch.asc" ; \
+	\
+  # verify the signature
+	export GNUPGHOME="$(mktemp -d)" ; \
+	gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4 ; \
+	gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu ; \
+	gpgconf --kill all ; \
+	rm -rf "$GNUPGHOME" /usr/local/bin/gosu.asc ; \
+	\
+  # clean up fetch dependencies
+	apt-mark auto '.*' > /dev/null ; \
+	[ -z "$savedAptMark" ] || apt-mark manual $savedAptMark ; \
+	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false ; \
+	\
+	chmod +x /usr/local/bin/gosu ; \
+  # verify that the binary works
+	gosu --version ;\
+	gosu nobody true
+
+FROM base as base-dev
+
+COPY container-scripts/01_nodoc /etc/dpkg/dpkg.cfg.d/01_nodoc
+RUN apt-get -q update \
+  && apt-get -q purge -y snapd \
+  && apt-get -qq install -y --no-install-recommends \
+    sudo \ 
+  #  gnupg2 \
+  #  ca-certificates \
+  #  wget curl rsync \
+  #  zip unzip \
+  #  build-essential \
+  #  autoconf automake libtool ninja-build pkg-config \
+    git git-lfs ssh \
+  #  nano \
+  && apt-get -q autoremove --purge && apt-get -q clean && rm -rf /var/lib/apt/lists/* \
+  && rm -rf /usr/share/doc/ && rm -rf /usr/share/man/ && rm -rf /usr/share/locale/ \
+  # add the sudo user uname:gname with uid:gid
+  && groupadd --gid ${dgid} ${gname} \
+  #&& groupadd --gid 999 docker \
+  && useradd --uid ${duid} -g ${gname} -G sudo -s /bin/bash -m ${uname} \
+  && echo "${uname} ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/${uname} \
+  && chmod 0440 /etc/sudoers.d/${uname} \
+  && mkdir -p /opt/container-scripts/entrypoint.d && chmod -R 777 /opt/container-scripts 
+
+COPY --from=gosu-build /usr/local/bin/gosu /usr/local/bin/gosu
+COPY container-scripts/entrypoint-*.sh /opt/container-scripts/
+COPY container-scripts/entrypoint.d/root/10-modify-ezdev.sh /opt/container-scripts/entrypoint.d/root/
+COPY container-scripts/entrypoint.d/ezdev/11-env.sh /opt/container-scripts/entrypoint.d/ezdev/
+
+USER ${uname}
+
+RUN mkdir ~/.vscode-server
+
+USER root
+
+#USER root
+#RUN echo "export LIBGL_ALWAYS_SOFTWARE=1" >> /opt/container-scripts/entrypoint.d/10-env.sh
+
+FROM base-dev as base-x-dev
+
+RUN apt-get -q update \
+  && apt-get -qq install -y --no-install-recommends \
+  mesa-utils \
+  vulkan-tools \
+  # python - mesa-vulkan-drivers \
+  # python-is-python3 python3-pip \
+  # depends on python - software-properties-common \
+  # depends on python - terminator \
+  # lsb-release \
+  && apt-get -q autoremove --purge && apt-get -q clean && rm -rf /var/lib/apt/lists/* \
+  && rm -rf /usr/share/doc/ && rm -rf /usr/share/man/ && rm -rf /usr/share/locale/
+
+FROM base as base-with-cmake
+
+# install cmake
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.26.3/cmake-3.26.3-Linux-x86_64.sh -q -O /tmp/cmake-install.sh \
+  && chmod u+x /tmp/cmake-install.sh \
+  && mkdir /opt/cmake \
+  && /tmp/cmake-install.sh --skip-license --prefix=/opt/cmake \
+  && rm /tmp/cmake-install.sh \
+  && ln -s /opt/cmake/bin/* /usr/local/bin \
+  && cmake --version
+
+FROM base as base-final
+
+COPY --from=base-with-cmake /opt/cmake /opt/cmake
+# smoke tests
+RUN ln -s /opt/cmake/bin/* /usr/local/bin \
+  && cmake --version

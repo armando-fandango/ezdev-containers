@@ -1,0 +1,7 @@
+ARG from
+FROM ${from} as nginx-base
+LABEL org.opencontainers.image.authors="armando.ucf@gmail.com"
+
+FROM nginx-base as nginx-prod
+USER 101
+

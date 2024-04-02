@@ -1,0 +1,408 @@
+x-base-command: &base-command
+  command: bash -c 
+          "echo $(cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2) on $(uname -m);"
+
+x-node-command: &node-command
+  command: bash -c
+          "echo $(cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2) on $(uname -m);
+          echo node $(node -v); 
+          echo npm $(npm -v);
+          echo yarn $(yarn -v); 
+          echo pnpm $(pnpm -v);
+          echo PNPM_HOME $(pnpm bin -g)"
+
+x-php-command: &php-command
+  command: bash -c
+          "echo $(cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2) on $(uname -m);
+          echo $(php -v);"
+
+x-node-qa-command: &node-qa-command
+  command: bash -c
+          "echo $(cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2) on $(uname -m);
+          echo node $(node -v); 
+          echo npm $(npm -v);
+          echo yarn $(yarn -v); 
+          echo pnpm $(pnpm -v);
+          echo PNPM_HOME $(pnpm bin -g);
+          echo $(cypress version);
+          echo $(google-chrome --version);
+          echo $(firefox --version);
+          echo $(edge --version);"
+
+x-conda-command: &conda-command
+  command: bash -c 
+          "cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2;  
+          echo `which python` `python -V`;
+          echo `which conda` `conda -V`;
+          echo `which mamba` `mamba -V`;"
+
+x-wait-command: &wait-command
+  command: bash -c 
+          "while sleep 1000; do :; done;"
+
+x-common: &common
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - .:/workspace
+      - /data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /workspace
+    env_file: .env
+    #user: ezdev:ezdev
+
+x-code: &code
+    volumes:
+      - .:/workspace
+      #- vscode-server:/home/ezdev/.vscode-server
+      #- vscode-server:/root/.vscode-server
+x-data: &data
+# Modify the paths before the ':' in next 4 lines to match your system
+    volumes:
+#      - ${HOME}/exp:/exp
+      - /data:/data # only needed if your exp, unity-envs or navsim folders are symlinked from here
+
+x-exportx: &exportx
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${XAUTHORITY}:${XAUTHORITY}
+      - $XDG_RUNTIME_DIR:$XDG_RUNTIME_DIR
+      - /usr/share/vulkan/icd.d:/usr/share/vulkan/icd.d
+    environment:
+      - DISPLAY
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - XAUTHORITY
+      - XDG_RUNTIME_DIR
+
+x-deploy-nvidia: &deploy-nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              #device_ids: ['0', '3']
+              capabilities: [gpu]
+
+x-debian-image: &debian-image
+    debian:11.8-slim
+
+services:
+
+##### Base images
+
+  base-debian-dev:
+    image: ghcr.io/armando-fandango/ezdev:0.11-base-debian-dev
+    <<: [*base-command, *common]
+
+  base-debian-dev-amd64:
+    extends:
+      service: base-debian-dev
+    platform: linux/amd64
+
+  base-debian-dev-arm64:
+    extends:
+      service: base-debian-dev
+    platform: linux/arm64
+
+  base-ubuntu-dev:
+    image: ghcr.io/armando-fandango/ezdev:0.11-base-ubuntu-dev
+    <<: [*base-command, *common]
+
+  base-ubuntu-dev-amd64:
+    extends:
+      service: base-ubuntu-dev
+    platform: linux/amd64
+
+  base-ubuntu-dev-arm64:
+    extends:
+      service: base-ubuntu-dev
+    platform: linux/arm64
+
+  base-alpine-dev:
+    image: ghcr.io/armando-fandango/ezdev:0.11-base-alpine-dev
+    <<: [*base-command, *common]
+
+  base-alpine-dev-amd64:
+    extends:
+      service: base-alpine-dev
+    platform: linux/amd64
+
+  base-alpine-dev-arm64:
+    extends:
+      service: base-alpine-dev
+    platform: linux/arm64
+
+  base-alpine-prod:
+    image: ghcr.io/armando-fandango/ezdev:0.11-base-alpine-prod
+    <<: [*base-command, *common]
+
+  base-alpine-prod-amd64:
+    extends:
+      service: base-alpine-prod
+    platform: linux/amd64
+
+  base-alpine-prod-arm64:
+    extends:
+      service: base-alpine-prod
+    platform: linux/arm64
+
+##### web images
+
+  php-alpine-dev:
+    extends:
+      service: base-alpine-dev
+    image: ghcr.io/armando-fandango/ezdev:0.12-php-alpine-dev
+    <<: [*common, *php-command]
+
+  php-alpine-dev-amd64:
+    extends:
+      service: php-alpine-dev
+    platform: linux/amd64
+
+  php-alpine-dev-arm64:
+    extends:
+      service: php-alpine-dev
+    platform: linux/arm64
+
+  php-alpine-prod:
+    extends:
+      service: base-alpine-dev
+    image: ghcr.io/armando-fandango/ezdev:0.12-php-alpine-prod
+    <<: [*common, *php-command]
+
+  php-alpine-prod-amd64:
+    extends:
+      service: php-alpine-prod
+    platform: linux/amd64
+
+  php-alpine-prod-arm64:
+    extends:
+      service: php-alpine-prod
+    platform: linux/arm64
+
+  node-alpine-dev:
+    extends:
+      service: base-alpine-dev
+    image: ghcr.io/armando-fandango/ezdev:0.12-node-alpine-dev
+    <<: [*common, *node-command]
+
+  node-alpine-dev-amd64:
+    extends:
+      service: node-alpine-dev
+    platform: linux/amd64
+
+  node-alpine-dev-arm64:
+    extends:
+      service: node-alpine-dev
+    platform: linux/arm64
+
+  node-alpine-prod:
+    extends:
+      service: base-alpine-dev
+    image: ghcr.io/armando-fandango/ezdev:0.12-node-alpine-prod
+    <<: [*common, *node-command]
+
+  node-alpine-prod-amd64:
+    extends:
+      service: node-alpine-prod
+    platform: linux/amd64
+
+  node-alpine-prod-arm64:
+    extends:
+      service: node-alpine-prod
+    platform: linux/arm64
+
+  node-debian-dev:
+    extends:
+      service: base-debian-dev
+    image: ghcr.io/armando-fandango/ezdev:0.12-node-debian-dev
+    <<: [*common, *node-command]
+
+  node-debian-dev-amd64:
+    extends:
+      service: node-debian-dev
+    platform: linux/amd64
+
+  node-debian-dev-arm64:
+    extends:
+      service: node-debian-dev
+    platform: linux/arm64
+
+  node-debian-qa:
+    extends:
+      service: base-debian-dev
+    image: ghcr.io/armando-fandango/ezdev:0.12-node-debian-qa
+    <<: [*common, *node-qa-command]
+
+  node-debian-qa-amd64:
+    extends:
+      service: node-debian-qa
+    platform: linux/amd64
+
+  node-debian-qa-arm64:
+    extends:
+      service: node-debian-qa
+    platform: linux/arm64  
+
+##### AI images
+
+  conda:
+    extends:
+      service: dev-base
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.7-conda-bullseye-slim
+    command: bash -c "lsb_release -a; 
+              cmake --version | head -1; 
+              echo `which python` `python -V`;
+              echo `which conda` `conda -V`;
+              echo `which mamba` `mamba -V`;"
+
+  conda-debian-dev:
+    extends:
+      service: base-debian-dev
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.8-conda-debian-dev
+    <<: [*common, *conda-command]
+
+  conda-jupyter-debian-dev:
+    extends:
+      service: base-debian-dev
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.8-conda-jupyter-debian-dev
+    <<: [*common, *conda-command]
+
+  conda-with-jupyter:
+    extends:
+      service: dev-base
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.7-conda-with-jupyter-bullseye-slim
+    command: bash -c "lsb_release -a; 
+              cmake --version | head -1; 
+              echo `which python` `python -V`;
+              echo `which conda` `conda -V`;
+              echo `which mamba` `mamba -V`;"
+
+  conda-jupyter-service-debian-dev:
+    extends:
+      service: base-debian-dev
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.8-conda-jupyter-service-debian-dev
+    <<: [*common, *conda-command]
+    ports:
+      - "${HOST_JUPYTER_PORT:-8888}:8888"
+
+  iot:
+    extends:
+      service: dev-base
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.7-iot-bullseye-slim
+    command: bash -c "ls"
+  #  build: 
+  #    context: .
+  #    dockerfile: dockerfiles/Dockerfile-iot-debian1104
+  #    args:
+  #      from: ghcr.io/armando-fandango/ezdev/ezdev:0.6-base-bullseye-slim
+
+  ai-pytorch:
+    extends:
+      service: dev-base-nvidia
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.7-ai-pytorch-conda-bullseye-slim
+    command: bash -c "lsb_release -a; 
+              cmake --version | head -1;
+              echo `which python` `python -V`;
+              echo `which conda` `conda -V`;
+              echo `which mamba` `mamba -V`;
+              echo 'torch.cuda:';
+              python -c 'import torch; print(torch.cuda.is_available()); print(torch.version.cuda)';
+              nvidia-smi;"
+              #while sleep 60; do :; done;"
+
+  ai-tflm:
+    extends:
+      service: dev-base-nvidia
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.7-ai-tflm-conda-bullseye-slim
+    command: bash -c "lsb_release -a; 
+              cmake --version | head -1; 
+              echo `which python` `python -V`;
+              echo `which conda` `conda -V`;
+              echo `which mamba` `mamba -V`;
+              echo 'Importing TF.....';
+              python -c 'import tensorflow as tf; print(tf.__version__);print(tf.config.list_physical_devices()); print(tf.sysconfig.get_build_info())';
+              nvidia-smi;"
+              #while sleep 60; do :; done;"
+
+  ai-tflm-with-jupyter-service:
+    extends:
+      service: dev-base-nvidia
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.7-ai-tflm-conda-with-jupyter-service-bullseye-slim
+    command: bash -c "lsb_release -a; 
+              cmake --version | head -1; 
+              echo `which python` `python -V`;
+              echo `which conda` `conda -V`;
+              echo `which mamba` `mamba -V`;
+              echo 'Importing TF.....';
+              python -c 'import tensorflow as tf; print(tf.__version__);print(tf.config.list_physical_devices()); print(tf.sysconfig.get_build_info())';
+              nvidia-smi;"
+    ports:
+      - "${HOST_JUPYTER_PORT:-8888}:8888"
+
+  runtime-base:
+    <<: [*data]
+    image: *debian-image
+    working_dir: /output
+  
+  runtime-base-nvidia:
+    extends:
+      service: runtime-base
+    <<: [*deploy-nvidia]
+    command: bash -c "nvidia-smi"
+
+  runtime-base-nvidia-x:
+    extends:
+      service: runtime-base-nvidia
+    <<: [*exportx]
+    command: bash -c "nvidia-smi"
+
+  dev-base:
+    image: ezdev:0.8-base-bookworm-slim
+    command: bash -c "cmake --version | head -1;
+              while sleep 100; do :; done;"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ${PWD}:/workspace
+      #- vscode-server:/home/ezdev/.vscode-server
+      - /data:/data
+    working_dir: /workspace
+    #user: ${UID}:${GID} No need to specify this because the container starts as ezdev user
+
+  base:
+    extends:
+      service: dev-base
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.8-base-debian
+    #command: ['bash -c "',*base-cmd,'"']
+    command: bash -c "lsb_release -a; 
+              cmake --version | head -1;"
+
+  base-x:
+    extends:
+      service: dev-base-nvidia-x
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.7-base-bullseye-slim
+    command: bash -c "echo =========================; \
+             echo 'NVIDIA Info:';nvidia-smi -L; nvidia-smi -B; echo =========================; \
+             echo 'Vulkan Info:';vulkaninfo 1>/dev/null; vulkaninfo 2>/dev/null | tail +5 | head -5 ; \
+             echo 'OpenGL Info:';glxinfo | head -5; echo ==============================; \
+             echo 'Run vkcube, vkcubecc, glxgears, glxheads to check out cool graphics test'"
+
+  dev-base-nvidia:
+    extends:
+      service: runtime-base-nvidia
+    <<: [*code]
+    working_dir: /workspace
+
+  dev-base-nvidia-x:
+    extends:
+      service: runtime-base-nvidia-x
+    <<: [*code]
+    working_dir: /workspace
+
+networks:
+  default:
+    name: ${COMPOSE_PROJECT_NAME}
+    attachable: true

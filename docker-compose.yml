@@ -1,0 +1,250 @@
+x-alpine-image: &alpine-image
+    alpine:3.19.1  
+
+x-debian-image: &debian-image
+    debian:12.5-slim  # debian 12 doesnt work with gosu > 1.10
+
+x-ubuntu-image: &ubuntu-image
+    ubuntu:22.04    # ubuntu 22 doesnt work with gosu > 1.10
+
+x-base-ubuntu-dev-image: &base-ubuntu-dev-image
+    ghcr.io/armando-fandango/ezdev:0.11-base-ubuntu-dev
+
+x-base-debian-dev-image: &base-debian-dev-image
+    ghcr.io/armando-fandango/ezdev:0.11-base-debian-dev
+
+x-base-alpine-dev-image: &base-alpine-dev-image
+    ghcr.io/armando-fandango/ezdev:0.11-base-alpine-dev
+
+x-base-alpine-prod-image: &base-alpine-prod-image
+    ghcr.io/armando-fandango/ezdev:0.11-base-alpine-prod
+
+services:
+
+# DUID=`id -u` DGID=`id -g` docker compose build fixid
+#  fixid:
+#    image: *img
+#    build: 
+#      context: .
+#      dockerfile: dockerfiles/Dockerfile-fixid
+#      args: 
+#        image: *img
+#        duid: ${DUID:-9000}
+#        dgid: ${DGID:-9000}
+
+  base-ubuntu-dev:
+    image: *base-ubuntu-dev-image
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-base-debian
+      target: base-dev
+      args:
+        from: *ubuntu-image
+
+  base-debian-dev:
+    image: *base-debian-dev-image
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-base-debian
+      #tags: 
+      #  - ${CONTAINER_REPO}/ezdev:0.8-base-debian-dev
+      target: base-dev
+      args:
+        from: *debian-image
+  
+  base-alpine-dev:
+    image: *base-alpine-dev-image
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-base-alpine
+      #tags: 
+      #  - ${CONTAINER_REPO}/ezdev:0.8-base-alpine-dev
+      target: base-dev
+      args:
+        from: *alpine-image
+
+  base-alpine-prod:
+    image: *base-alpine-prod-image
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-base-alpine
+      #tags: 
+      #  - ${CONTAINER_REPO}/ezdev:0.8-base-alpine-dev
+      target: base-prod
+      args:
+        from: *alpine-image
+
+  #base-x-bookworm-slim:
+  #  image: ezdev:0.8-base-x-bookworm-slim
+  #  build: 
+  #    context: .
+  #    dockerfile: dockerfiles/Dockerfile-base-debian
+  #    tags: 
+  #      - ${CONTAINER_REPO}/ezdev:0.8-base-x-bookworm-slim
+  #    target: base-x-final
+  #    args:
+  #      from: *debian-image
+
+  nginx-alpine-prod:
+    image: ghcr.io/armando-fandango/ezdev:0.12-nginx-alpine-prod
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-nginx-alpine
+      #tags: 
+      #  - ${CONTAINER_REPO}/ezdev:0.8-node-debian-dev
+      args:
+        from: nginxinc/nginx-unprivileged:1.25-alpine-slim
+      target: nginx-prod
+
+  certbot-alpine-prod:
+    image: ghcr.io/armando-fandango/ezdev:0.12-certbot-alpine-prod
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-certbot-alpine
+      #tags: 
+      #  - ${CONTAINER_REPO}/ezdev:0.8-node-debian-dev
+      args:
+        from: *base-alpine-prod-image
+      target: certbot-prod
+
+  php-alpine-dev:
+    image: ghcr.io/armando-fandango/ezdev:0.12-php-alpine-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-php-alpine
+      #tags: 
+      #  - ${CONTAINER_REPO}/ezdev:0.8-node-debian-dev
+      args:
+        from: *base-alpine-dev-image
+      target: php-dev
+
+  php-alpine-prod:
+    image: ghcr.io/armando-fandango/ezdev:0.12-php-alpine-prod
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-php-alpine
+      #tags: 
+      #  - ${CONTAINER_REPO}/ezdev:0.8-node-debian-dev
+      args:
+        from: *base-alpine-prod-image
+      target: php-prod
+
+  node-alpine-dev:
+    image: ghcr.io/armando-fandango/ezdev:0.12-node-alpine-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-node-alpine
+      args:
+        from: *base-alpine-dev-image
+      target: node-dev
+
+  node-alpine-prod:
+    image: ghcr.io/armando-fandango/ezdev:0.12-node-alpine-prod
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-node-alpine
+      args:
+        from: *base-alpine-prod-image
+      target: node-prod
+
+  node-debian-dev:
+    image: ghcr.io/armando-fandango/ezdev:0.12-node-debian-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-node-debian
+      #tags: 
+      #  - ${CONTAINER_REPO}/ezdev:0.8-node-debian-dev
+      args:
+        from: *base-debian-dev-image
+      target: node-dev
+
+  node-debian-qa:
+    image: ghcr.io/armando-fandango/ezdev:0.12-node-debian-qa
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-node-debian
+      #tags: 
+      #  - ${CONTAINER_REPO}/ezdev:0.8-node-debian-dev
+      args:
+        from: *base-debian-dev-image
+      target: node-qa
+
+  conda-debian-dev:
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.11-conda-debian-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-conda-debian
+      target: conda
+      args:
+        from: ghcr.io/armando-fandango/ezdev/ezdev:0.10-base-debian-dev
+
+  conda-jupyter-debian-dev:
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.11-conda-jupyter-debian-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-conda-debian
+      target: conda-jupyter
+      args:
+        from: ghcr.io/armando-fandango/ezdev/ezdev:0.10-base-debian-dev
+
+  conda-jupyter-service-debian-dev:
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.11-conda-jupyter-service-debian-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-conda-debian
+      target: conda-jupyter-service
+      args:
+        from: ghcr.io/armando-fandango/ezdev/ezdev:0.10-base-debian-dev
+
+  ai-tflm-debian-dev:
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.11-ai-tflm-debian-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-ai-debian
+      target: ai-tflm
+      args:
+        from: ghcr.io/armando-fandango/ezdev/ezdev:0.11-conda-debian-dev
+
+  ai-tflm-jupyter-service-debian-dev:
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.11-ai-tflm-jupyter-service-debian-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-ai-debian
+      target: ai-tflm
+      args:
+        from: ghcr.io/armando-fandango/ezdev/ezdev:0.11-conda-jupyter-service-debian-dev
+  
+  ai-tflm-jupyter-service-iot-debian-dev:
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.11-ai-tflm-jupyter-service-iot-debian-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-iot-debian
+      args:
+        from: ghcr.io/armando-fandango/ezdev/ezdev:0.11-ai-tflm-jupyter-service-debian-dev
+
+  ai-pytorch-debian-dev:
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.11-ai-pytorch-debian-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-ai-debian
+      target: ai-pytorch
+      args:
+        from: ghcr.io/armando-fandango/ezdev/ezdev:0.11-conda-debian-dev
+
+  ai-pytorch-jupyter-service-debian-dev:
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.11-ai-pytorch-jupyter-service-debian-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-ai-debian
+      target: ai-pytorch
+      args:
+        from: ghcr.io/armando-fandango/ezdev/ezdev:0.11-conda-jupyter-service-debian-dev
+
+  ai-pytorch-fm-jupyter-service-debian-dev:
+    image: ghcr.io/armando-fandango/ezdev/ezdev:0.11-ai-pytorch-fm-jupyter-service-debian-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-ai-debian
+      target: ai-pytorch-fm
+      args:
+        from: ghcr.io/armando-fandango/ezdev/ezdev:0.11-conda-jupyter-service-debian-dev
