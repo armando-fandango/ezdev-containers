@@ -8,7 +8,11 @@ else
     exec 3>/dev/null
 fi
 
-echo >&3 "$0: Switched to user `id`"
+cuname=ezdev
+
+echo >&3 "$0: Starting ezdev entrypoint as user `id`"
+
+#chown -R $(id -u):$(id -g) /home/${cuname}
 
 scripts_folder="/opt/container-scripts/entrypoint.d/ezdev/"
 if /usr/bin/find "${scripts_folder}" -mindepth 1 -maxdepth 1 -type f -print -quit 2>/dev/null | read v; then
@@ -41,5 +45,5 @@ if [ "${1#-}" != "${1}" ] || [ -z "$(command -v "${1}")" ] || { [ -f "${1}" ] &&
   set -- "echo" "Unknown command " "$@"
 fi
 
-
+echo "executing: $@"
 exec "$@"

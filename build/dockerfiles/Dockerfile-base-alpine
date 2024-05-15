@@ -7,6 +7,8 @@ ARG dgid=9000
 ARG uname=ezdev
 ARG gname=ezdev
 
+USER root
+
 RUN set -x \
 	&& apk add --no-cache \
 		bash shadow \
@@ -26,6 +28,7 @@ CMD ["/bin/bash"]
 FROM base as gosu-build
 
 ENV GOSU_VERSION 1.17
+ENV GOSU_PLEASE_LET_ME_BE_COMPLETELY_INSECURE_I_GET_TO_KEEP_ALL_THE_PIECES="I've seen things you people wouldn't believe. Attack ships on fire off the shoulder of Orion. I watched C-beams glitter in the dark near the Tannhäuser Gate. All those moments will be lost in time, like tears in rain. Time to die."
 
 RUN set -eux; \
 	\
@@ -50,7 +53,7 @@ RUN set -eux; \
 	apk del --no-network .gosu-deps ; \
 	\
 	chmod +x /usr/local/bin/gosu ; \
-	#&& chmod +s /usr/local/bin/gosu \
+	chmod +s /usr/local/bin/gosu ; \
 	# verify that the binary works
 	gosu --version ; \
 	gosu nobody true
@@ -60,16 +63,17 @@ FROM base as base-dev
 RUN set -x \
 	&& apk add --no-cache \
 		sudo \
-		git git-lfs openssh \
+		git git-lfs \
+		openssh \
+		rsync \ 
+		busybox-extras \
 	&& echo "${uname} ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/${uname} 
 
 COPY --from=gosu-build /usr/local/bin/gosu /usr/local/bin/gosu
 
 USER ${uname}
 
-RUN mkdir ~/.vscode-server
-
-USER root
+RUN mkdir ~/.vscode-server && chmod 777 ~/.vscode-server
 
 FROM base as base-prod
 
@@ -80,4 +84,4 @@ RUN set -x \
 
 COPY --from=gosu-build /usr/local/bin/gosu /usr/local/bin/gosu
 
-USER root
+USER ${uname}

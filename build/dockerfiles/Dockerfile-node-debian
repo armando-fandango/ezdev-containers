@@ -83,7 +83,10 @@ RUN ln -s /opt/node/bin/* /usr/local/bin \
     #&& yarn --version
 
 USER ${uname}
-RUN SHELL=bash pnpm setup
+RUN SHELL='bash' pnpm setup
+ENV PNPM_HOME="/home/${uname}/.local/share/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+#RUN pnpm install -g syncpack depcheck
 
 USER root
 
@@ -162,8 +165,6 @@ USER ${uname}
 ENV PNPM_HOME="/home/${uname}/.local/share/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN pnpm install -g cypress@12.3.0
-
-USER root
 
 #RUN export SHELL=bash && pnpm setup 
 

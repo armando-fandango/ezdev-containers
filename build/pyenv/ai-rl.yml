@@ -1,0 +1,6 @@
+channels:
+  - conda-forge
+dependencies:
+  - gymnasium
+  - gymnasium-all
+  - stable-baselines3

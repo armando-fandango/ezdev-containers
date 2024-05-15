@@ -1,0 +1,136 @@
+ARG from
+FROM ${from} as ai-base
+LABEL org.opencontainers.image.authors="armando.ucf@gmail.com"
+
+ARG uname=ezdev
+ARG gname=ezdev
+ARG mamba_dir="/opt/py"
+ARG venv="base"
+
+ENV DEBIAN_FRONTEND=noninteractive
+#ENV TZ=UTC
+#RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+SHELL ["/bin/bash", "-l", "-c"]
+
+USER root
+
+FROM ai-base as ai-core-build
+
+# pytorch has cuda added
+COPY pyenv/ai-core.yml /root/
+RUN mamba env update -n ${venv} --file /root/ai-core.yml && \
+    mamba clean -itcly && \
+    rm -rf /root/ai-core.yml  
+#COPY pyenv/cuda.yml /root/pyenv/
+#RUN mamba env update -n ${venv} --file /root/pyenv/cuda.yml
+#COPY pyenv/ai-lm.yml /root/pyenv/
+#RUN mamba env update -n ${venv} --file /root/pyenv/ai-lm.yml
+#COPY pyenv/ai-lm-pip.yml /root/pyenv/
+#RUN mamba env update -n ${venv} --file /root/pyenv/ai-lm-pip.yml
+
+FROM ai-core-build as ai-pytorch-build
+
+COPY pyenv/ai-pytorch.yml /root/
+RUN mamba env update -n ${venv} --file /root/ai-pytorch.yml && \
+    mamba clean -itcly && \
+    rm -rf /root/ai-pytorch.yml
+
+FROM ai-pytorch-build as ai-pytorch-extras-build
+
+COPY pyenv/ai-pytorch-extras.yml /root/
+RUN mamba env update -n ${venv} --file /root/ai-pytorch-extras.yml && \
+    mamba clean -itcly && \
+    rm -rf /root/ai-pytorch-extras.yml
+    
+    
+FROM ai-pytorch-extras-build as ai-pytorch-fm-build
+COPY pyenv/ai-fm.yml /root/
+RUN mamba env update -n ${venv} --file /root/ai-fm.yml && \
+    mamba clean -itcly && \
+    rm -rf /root/ai-fm.yml
+
+FROM ai-core-build as ai-tflm-build
+
+# install TF and TFLM
+
+COPY pyenv/tensorflow.yml /root/
+COPY tflite-micro /root/tflite-micro
+WORKDIR /root/tflite-micro
+
+RUN apt-get -q update \ 
+    && apt-get -qq install -y --no-install-recommends \
+        wget ca-certificates \
+        build-essential \
+        autoconf automake libtool ninja-build pkg-config \
+    #&& CONDA_OVERRIDE_CUDA="11.8" mamba env update -n ${venv} --file /root/tensorflow.yml \
+    #&& CONDA_OVERRIDE_CUDA="11.8" pip install --no-cache-dir "tensorflow[and-cuda]==2.16.1"  "keras==3.3.3" "tensorflow_model_optimization==0.7.5" "tensorrt" "tensorboard" \
+    && CONDA_OVERRIDE_CUDA="11.8" pip install --no-cache-dir "tensorflow[and-cuda]==2.11.0"  "keras==2.11.0" "tensorflow_model_optimization==0.7.5" "tensorrt" "tensorboard" \
+    && ci/install_bazelisk.sh  \
+    && ci/install_buildifier.sh \
+    && ln -s /opt/py/bin/python3 /usr/bin/python3 \
+    && bazel build //python/tflite_micro:whl.dist --verbose_failures  \
+    && pip install /root/tflite-micro/bazel-bin/python/tflite_micro/whl_dist/*.whl \
+    && mamba clean -itcly \
+    && rm -rf /root/tensorflow.yml \
+    && rm -rf /root/tflite-micro
+
+FROM ai-base as ai-tflm
+
+# copy TF install
+
+COPY --from=ai-tflm-build ${mamba_dir} ${mamba_dir}
+
+# install cuda
+RUN apt-get -q update \ 
+    && apt-get -qq install -y --no-install-recommends \
+      wget ca-certificates \
+# Install Nvidia repo keys
+    && wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb \
+    && dpkg -i cuda-keyring_1.1-1_all.deb \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends cuda-command-line-tools-11-8 \
+        cuda-cudart-dev-11-8 \
+        cuda-nvcc-11-8 \
+        cuda-cupti-11-8 \
+        cuda-nvprune-11-8 \
+        cuda-libraries-11-8 \
+        cuda-nvrtc-11-8 \
+        libcufft-11-8 \
+        libcurand-11-8 \
+        libcusolver-11-8 \
+        libcusparse-11-8 \
+        libcublas-11-8 \
+        # CuDNN: https://docs.nvidia.com/deeplearning/sdk/cudnn-install/index.html#ubuntu-network-installation
+        libcudnn8=8.6.0.163-1+cuda11.8 \
+        libnvinfer-plugin8=8.6.1.6-1+cuda11.8 \
+        libnvinfer8=8.6.1.6-1+cuda11.8 \
+    && apt-get -q autoremove --purge && apt-get -q clean && rm -rf /var/lib/apt/lists/* \
+    # Delete uneccessary static libraries
+    #RUN find /usr/local/cuda-*/lib*/ -type f -name 'lib*_static.a' -not -name 'libcudart_static.a' -delete
+    && rm -f /usr/lib/x86_64-linux-gnu/libcudnn_static_v*.a \
+    # Link the libcuda stub to the location where tensorflow is searching for it and
+    # reconfigure dynamic linker run-time bindings
+    && ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1 \
+    && echo "/usr/local/cuda/lib64/stubs" > /etc/ld.so.conf.d/z-cuda-stubs.conf \
+    && ln -s /usr/lib/x86_64-linux-gnu/libnvinfer.so.8 /usr/lib/x86_64-linux-gnu/libnvinfer.so.7 \
+    && ln -s /usr/lib/x86_64-linux-gnu/libnvinfer_plugin.so.8 /usr/lib/x86_64-linux-gnu/libnvinfer_plugin.so.7 \
+    && ldconfig
+
+USER ${uname}
+
+FROM ai-base as ai-pytorch
+
+COPY --from=ai-pytorch-extras-build ${mamba_dir} ${mamba_dir}
+#RUN ln -s /opt/py/lib/python3.10/site-packages/tensorrt_libs/libnvinfer.so.8 /opt/py/lib/python3.10/site-packages/tensorrt_libs/libnvinfer.so.7
+#RUN ln -s /opt/py/lib/python3.10/site-packages/tensorrt_libs/libnvinfer_plugin.so.8 /opt/py/lib/python3.10/site-packages/tensorrt_libs/libnvinfer_plugin.so.7
+
+USER ${uname}
+
+FROM ai-base as ai-pytorch-fm
+
+COPY --from=ai-pytorch-fm-build ${mamba_dir} ${mamba_dir}
+#RUN ln -s /opt/py/libf/python3.10/site-packages/tensorrt_libs/libnvinfer.so.8 /opt/py/lib/python3.10/site-packages/tensorrt_libs/libnvinfer.so.7
+#RUN ln -s /opt/py/lib/python3.10/site-packages/tensorrt_libs/libnvinfer_plugin.so.8 /opt/py/lib/python3.10/site-packages/tensorrt_libs/libnvinfer_plugin.so.7
+
+USER ${uname}

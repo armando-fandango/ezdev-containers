@@ -1,0 +1,111 @@
+ARG from
+FROM ${from} as conda-base
+LABEL org.opencontainers.image.authors="armando.ucf@gmail.com"
+
+ARG uname=ezdev
+ARG gname=ezdev
+ARG mamba_dir="/opt/py"
+ARG venv="base"
+
+ENV DEBIAN_FRONTEND=noninteractive
+#ENV TZ=UTC
+#RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+ENV MAMBA_NO_BANNER=1
+ENV PATH=${mamba_dir}/bin:$PATH
+
+SHELL ["/bin/bash","-l","-c"]
+
+USER root
+#ENV HOME=/root
+
+FROM conda-base as conda-build
+
+RUN apt-get -q update \ 
+    && apt-get -qq install -y --no-install-recommends \
+      wget ca-certificates \
+    && mkdir -p ${mamba_dir} 
+#&& chmod +rx /opt 
+    # && chown -R ${uname}:${gname} ${mamba_dir}
+
+#COPY --chown=${uname}:${gname} pyenv ${home}/pyenv
+#COPY pyenv /root/pyenv
+COPY pyenv/pyenv.sh /root/
+COPY pyenv/core.yml /root/
+
+#ARG activate="mamba activate ${venv} && umask 0000"
+RUN source /root/pyenv.sh \ 
+    && umask 0000 \
+    && ez_install_mamba \
+    && rm -rf /root/pyenv.sh 
+
+RUN conda config --system --set auto_activate_base true \
+    && mamba env config vars set MAMBA_NO_BANNER=1 \
+    && mamba init $(basename "${SHELL}")
+
+RUN mamba env update -n ${venv} --file  /root/core.yml \
+  && mamba clean -itcly \
+  && rm -rf /root/core.yml 
+
+FROM conda-base as conda
+
+USER root
+
+COPY --from=conda-build ${mamba_dir} ${mamba_dir}
+
+RUN ${mamba_dir}/bin/conda config --system --set auto_activate_base true \
+    && ${mamba_dir}/bin/mamba env config vars set MAMBA_NO_BANNER=1 \
+    && ${mamba_dir}/bin/mamba init $(basename "${SHELL}")
+
+USER ${uname}
+#ENV HOME=/home/${uname}
+#ENV MAMBA_NO_BANNER=1
+#ENV PATH=${mamba_dir}/bin:$PATH
+RUN ${mamba_dir}/bin/mamba init $(basename "${SHELL}") \
+    && ${mamba_dir}/bin/mamba env config vars set MAMBA_NO_BANNER=1
+
+FROM conda as conda-jupyter-build
+
+USER root
+
+COPY pyenv/jupyter.yml /root/jupyter.yml
+RUN mamba env update -n ${venv} --file /root/jupyter.yml && \
+  echo "Configuring jupyter..." && \
+  jupyter labextension disable "@jupyterlab/apputils-extension:announcements" && \
+  jupyter labextension enable "@jupyterlab/debugger" && \
+  jupyter labextension enable "@jupyterlab/toc" && \
+  jupyter labextension enable "@jupyterlab/execute_time" && \
+  jupyter labextension enable "@jupyterlab/nvdashboard" && \
+  mamba clean -itcly && \
+  rm /root/jupyter.yml 
+
+  #jupyter contrib nbextension install --sys-prefix && \
+  #jupyter nbextension enable --sys-prefix code_prettify/code_prettify  && \
+  #jupyter nbextension enable --sys-prefix toc2/main && \
+  #jupyter nbextension enable --sys-prefix varInspector/main && \
+  #jupyter nbextension enable --sys-prefix execute_time/ExecuteTime && \
+  #jupyter nbextension enable --sys-prefix spellchecker/main && \
+  #jupyter nbextension enable --sys-prefix scratchpad/main && \
+  #jupyter nbextension enable --sys-prefix collapsible_headings/main && \
+  #jupyter nbextension enable --sys-prefix codefolding/main
+  #jupyter nbextension enable --sys-prefix jupyter_resource_usage
+
+FROM conda as conda-jupyter
+
+USER root
+
+COPY --from=conda-jupyter-build ${mamba_dir} ${mamba_dir}
+COPY container-scripts/jn.sh /opt/py/bin/jn
+COPY container-scripts/jl.sh /opt/py/bin/jl
+
+USER ${uname}
+
+FROM conda-jupyter as conda-jupyter-service
+
+USER root
+
+COPY container-scripts/entrypoint.d/ezdev/22-jupyter.sh /opt/container-scripts/entrypoint.d/ezdev/
+
+#RUN echo "source /opt/py/etc/profile.d/conda.sh && conda activate base" >> /opt/container-scripts/entrypoint.d/10-env.sh
+#ENTRYPOINT ["/opt/container-scripts/entrypoint.sh"]
+#CMD ["bash"]
+USER ${uname}

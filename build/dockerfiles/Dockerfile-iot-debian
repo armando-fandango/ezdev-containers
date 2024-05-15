@@ -1,0 +1,34 @@
+ARG from
+FROM ${from} as iot-base
+LABEL org.opencontainers.image.authors="armando.ucf@gmail.com"
+
+ARG duid=9000
+ARG dgid=9000
+ARG uname=ezdev
+ARG gname=ezdev
+ARG venv="base"
+
+ENV DEBIAN_FRONTEND=noninteractive
+#ENV TZ=UTC
+#RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+SHELL ["/bin/bash","-c"]
+
+USER root
+
+RUN apt-get -q update \
+    && apt-get -qq install -y --no-install-recommends \
+      xxd \ 
+    && apt-get -q autoremove --purge && apt-get -q clean && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /usr/share/doc/ && rm -rf /usr/share/man/ && rm -rf /usr/share/locale/ \
+    # add the dialout group to user uname:gname with uid:gid
+    && usermod -a -G dialout ${uname}
+
+COPY pyenv/iot.yml /root/
+RUN (mamba env update -n ${venv} --file /root/iot.yml) && (mamba clean -itcly && rm -rf /root/iot.yml) || (pip3 install --no-cache-dir pyserial)
+
+USER ${uname}
+
+#RUN echo "source /opt/py/etc/profile.d/conda.sh && conda activate base" >> /opt/container-scripts/entrypoint.d/10-env.sh
+#ENTRYPOINT ["/opt/container-scripts/entrypoint.sh"]
+#CMD ["bash"]

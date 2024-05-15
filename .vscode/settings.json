@@ -1,0 +1,9 @@
+{
+	"editor.formatOnSave": true,
+	"editor.tabSize": 2,
+	"editor.codeActionsOnSave": [
+		"source.formatDocument"
+	],
+	"files.autoSave": "afterDelay",
+	"docker.composeCommand": "`docker compose`",
+}

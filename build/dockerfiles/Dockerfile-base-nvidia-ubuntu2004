@@ -1,0 +1,167 @@
+ARG from
+FROM ${from} as vulkan-base
+LABEL org.opencontainers.image.authors="armando@cortixly.ai"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub \
+    && apt-get -q purge -y ".*:i386" && dpkg --remove-architecture i386 \
+    && apt-get -q update \
+    && apt-get install -y --no-install-recommends \
+      libx11-xcb-dev libxkbcommon-dev libwayland-dev wayland-protocols libxrandr-dev \
+      build-essential \
+      autoconf automake libtool ninja-build pkg-config \
+      git git-lfs \
+      wget curl rsync
+
+#RUN apt-get -qq update && apt-get -qq upgrade -y \
+#    && apt-get -qq install -y --no-install-recommends \
+#      sudo \
+#    && apt-get autoremove --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# install cmake
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.26.3/cmake-3.26.3-Linux-x86_64.sh -q -O /tmp/cmake-install.sh \
+  && chmod u+x /tmp/cmake-install.sh \
+  && mkdir /opt/cmake \
+  && /tmp/cmake-install.sh --skip-license --prefix=/opt/cmake \
+  && rm /tmp/cmake-install.sh \
+  && ln -s /opt/cmake/bin/* /usr/local/bin
+
+WORKDIR /root/
+USER root
+SHELL ["/bin/bash","-c"]
+
+#install python
+COPY pyenv /root/pyenv
+
+ARG mamba_dir="/opt/py"
+ARG venv="base"
+ENV MAMBA_NO_BANNER=1
+
+WORKDIR /root/pyenv
+RUN source pyenv.sh \ 
+    && ez_install_mamba
+
+ARG activate="source ${mamba_dir}/etc/profile.d/conda.sh && source ${mamba_dir}/etc/profile.d/mamba.sh && conda activate base "
+
+RUN ${activate} \
+    && conda config --system --set auto_activate_base true \
+    && mamba env config vars set MAMBA_NO_BANNER=1
+
+#RUN PATH=${mamba_dir}/bin:$PATH 
+
+RUN ${activate} && mamba env update -n ${venv} --file cuda.yml
+RUN ${activate} && mamba env update -n ${venv} --file pytorch.yml
+RUN ${activate} && mamba env update -n ${venv} --file misc.yml 
+RUN ${activate} && mamba env update -n ${venv} --file jupyter.yml && conda activate base && \
+  echo "Configuring jupyter..." && \
+  jupyter labextension enable @jupyterlab/debugger && \
+  jupyter labextension enable @jupyterlab/toc && \
+  jupyter labextension enable @jupyterlab/execute_time && \
+  jupyter labextension enable @jupyterlab/nvdashboard && \
+  jupyter contrib nbextension install --sys-prefix && \
+  jupyter nbextension enable --sys-prefix code_prettify/code_prettify  && \
+  jupyter nbextension enable --sys-prefix toc2/main && \
+  jupyter nbextension enable --sys-prefix varInspector/main && \
+  jupyter nbextension enable --sys-prefix execute_time/ExecuteTime && \
+  jupyter nbextension enable --sys-prefix spellchecker/main && \
+  jupyter nbextension enable --sys-prefix scratchpad/main && \
+  jupyter nbextension enable --sys-prefix collapsible_headings/main && \
+  jupyter nbextension enable --sys-prefix codefolding/main && \
+  jupyter nbextension enable --sys-prefix jupyter_resource_usage/main
+
+WORKDIR /root/
+RUN cd .. && rm -rf /root/pyenv && chmod -R 777 /opt/py
+
+FROM vulkan-base as vulkan-build
+LABEL org.opencontainers.image.authors="armando@cortixly.ai"
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install Vulkan 
+ARG VULKAN_VERSION
+# Download and compile vulkan components
+#RUN git clone https://github.com/KhronosGroup/Vulkan-ValidationLayers.git /opt/vulkan && \
+#    cd /opt/vulkan && git checkout "${VULKAN_VERSION}" && \
+#    mkdir build && cd build && ../scripts/update_deps.py && \
+#    cmake -C helper.cmake -DCMAKE_BUILD_TYPE=Release .. && \
+#    cmake --build . && make install && ldconfig && \
+#    mkdir -p /usr/local/lib && cp -a Vulkan-Loader/build/install/lib/* /usr/local/lib && \
+#    mkdir -p /usr/local/include/vulkan && cp -r Vulkan-Headers/build/install/include/vulkan/* /usr/local/include/vulkan && \
+#    mkdir -p /usr/local/share/vulkan/registry && \
+#    cp -r Vulkan-Headers/build/install/share/vulkan/registry/* /usr/local/share/vulkan/registry && \
+#    rm -rf /opt/vulkan
+
+# Destination for built artefacts
+RUN mkdir /built
+
+# Build and install VulkanHeader
+RUN git clone https://github.com/KhronosGroup/Vulkan-Headers.git /opt/vulkan-headers \
+&& cd /opt/vulkan-headers \
+&& mkdir build && cd build \
+&& cmake -DCMAKE_INSTALL_PREFIX=/built .. \
+&& make install
+
+# Build and install Vulkan-Loader
+RUN git clone https://github.com/KhronosGroup/Vulkan-Loader.git /opt/vulkan-loader \
+&& cd /opt/vulkan-loader \
+&& mkdir build && cd build \
+&& source /opt/py/etc/profile.d/conda.sh && conda activate base \
+&& ../scripts/update_deps.py \
+&& cmake -C helper.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/built .. \
+&& cmake --build . --target install 
+	
+# Build and install Vulkan-Validation Layers
+RUN git clone https://github.com/KhronosGroup/Vulkan-ValidationLayers.git /opt/vulkan \
+&& cd /opt/vulkan \
+&& mkdir build && cd build \
+&& source /opt/py/etc/profile.d/conda.sh && conda activate base \
+&& ../scripts/update_deps.py \
+&& cmake -C helper.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/built .. \
+&& cmake --build . --target install 
+
+# Build and install Vulkan-Tools
+RUN git clone https://github.com/KhronosGroup/Vulkan-Tools.git /opt/vulkan-tools \
+&& cd /opt/vulkan-tools \
+&& mkdir build && cd build \
+&& source /opt/py/etc/profile.d/conda.sh && conda activate base \
+&& ../scripts/update_deps.py \
+&& cmake -C helper.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/built .. \
+&& cmake --build . --target install  
+
+FROM vulkan-base as vulkan-runtime
+
+LABEL org.opencontainers.image.authors="armando@cortixly.ai"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get -q update \
+    && apt-get -qq install -y --no-install-recommends \
+      software-properties-common \
+      sudo \
+      lsb-release \
+      gnupg2 \
+      ca-certificates \
+      mesa-utils \
+      nano vim \
+      terminator \
+    && apt-get -q autoremove --purge -y && apt-get -q clean && rm -rf /var/lib/apt/lists/*
+
+USER root
+WORKDIR /root/
+SHELL ["/bin/bash", "-c"]
+
+COPY --from=vulkan-build /built/include/* /usr/local/include/ 
+COPY --from=vulkan-build /built/bin/* /usr/bin/
+COPY --from=vulkan-build /built/lib/* /usr/local/lib/
+COPY --from=vulkan-build /built/share/* /usr/local/share/
+
+RUN mkdir -p /opt/container-scripts/entrypoint.d && chmod -R 777 /opt/container-scripts
+COPY container-scripts/entrypoint.sh /opt/container-scripts/
+COPY container-scripts/10-env.sh /opt/container-scripts/entrypoint.d/
+#RUN echo "source /opt/py/etc/profile.d/conda.sh && conda activate base" >> /opt/container-scripts/entrypoint.d/10-env.sh
+COPY container-scripts/20-py.sh /opt/container-scripts/entrypoint.d/
+COPY container-scripts/nvidia_icd.json /etc/vulkan/icd.d/nvidia_icd.json
+RUN ldconfig
+
+ENTRYPOINT ["/opt/container-scripts/entrypoint.sh"]
+CMD ["bash"]

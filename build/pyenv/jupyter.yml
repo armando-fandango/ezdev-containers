@@ -1,0 +1,22 @@
+channels:
+  - conda-forge
+dependencies:
+  - ipywidgets
+  - ipykernel
+  - ipytest
+  - ipython>=7.0.0
+  - jupyter_server
+  - jupyterlab=4.1.5
+  - jupyterlab-nvdashboard
+  - jupyterlab_execute_time
+  - jupyterlab_code_formatter
+#  - jupyter_contrib_nbextensions
+#  - jupyter_nbextensions_configurator
+  - jupyter-resource-usage
+  - jsonschema-with-format-nongpl
+  - nbconvert
+#  - nodejs==18.15.0 # pinned due to pytorch 2.0.0.
+  - notebook
+  - psutil>=5.9.0 
+  - webcolors>=1.11
+  - watermark

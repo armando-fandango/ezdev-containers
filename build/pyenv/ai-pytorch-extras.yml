@@ -1,0 +1,12 @@
+channels:
+  - nvidia
+  - fastai
+  - conda-forge
+dependencies:
+  - tensorboard
+  - lightning
+  - fastai
+  - keras==3.3.3
+  - cupy
+
+  

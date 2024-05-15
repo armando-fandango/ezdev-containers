@@ -1,3 +1,5 @@
+# compose dev for testing
+
 x-base-command: &base-command
   command: bash -c 
           "echo $(cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2) on $(uname -m);"
@@ -9,12 +11,22 @@ x-node-command: &node-command
           echo npm $(npm -v);
           echo yarn $(yarn -v); 
           echo pnpm $(pnpm -v);
-          echo PNPM_HOME $(pnpm bin -g)"
+          pnpm list -g;"
 
 x-php-command: &php-command
   command: bash -c
           "echo $(cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2) on $(uname -m);
-          echo $(php -v);"
+          php -v;"
+
+x-nginx-command: &nginx-command
+  command: sh -c
+          "echo $(cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2) on $(uname -m);
+          echo $(nginx -V);"
+
+x-certbot-command: &certbot-command
+  command: bash -c
+          "echo $(cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2) on $(uname -m);
+          echo $(certbot --version);"
 
 x-node-qa-command: &node-qa-command
   command: bash -c
@@ -23,11 +35,11 @@ x-node-qa-command: &node-qa-command
           echo npm $(npm -v);
           echo yarn $(yarn -v); 
           echo pnpm $(pnpm -v);
-          echo PNPM_HOME $(pnpm bin -g);
-          echo $(cypress version);
-          echo $(google-chrome --version);
-          echo $(firefox --version);
-          echo $(edge --version);"
+          pnpm list -g;
+          cypress version;
+          google-chrome --version;
+          firefox --version;
+          edge --version;"
 
 x-conda-command: &conda-command
   command: bash -c 
@@ -49,7 +61,7 @@ x-common: &common
       - /var/run/docker.sock:/var/run/docker.sock
     working_dir: /workspace
     env_file: .env
-    #user: ezdev:ezdev
+    user: ezdev:ezdev
 
 x-code: &code
     volumes:
@@ -90,10 +102,14 @@ x-debian-image: &debian-image
 
 services:
 
+  dev:
+    extends:
+      service: base-ubuntu-dev
+
 ##### Base images
 
   base-debian-dev:
-    image: ghcr.io/armando-fandango/ezdev:0.11-base-debian-dev
+    image: ghcr.io/armando-fandango/ezdev:0.14-base-debian-dev
     <<: [*base-command, *common]
 
   base-debian-dev-amd64:
@@ -107,7 +123,7 @@ services:
     platform: linux/arm64
 
   base-ubuntu-dev:
-    image: ghcr.io/armando-fandango/ezdev:0.11-base-ubuntu-dev
+    image: ghcr.io/armando-fandango/ezdev:0.15-base-ubuntu-dev
     <<: [*base-command, *common]
 
   base-ubuntu-dev-amd64:
@@ -121,7 +137,7 @@ services:
     platform: linux/arm64
 
   base-alpine-dev:
-    image: ghcr.io/armando-fandango/ezdev:0.11-base-alpine-dev
+    image: ghcr.io/armando-fandango/ezdev:0.15-base-alpine-dev
     <<: [*base-command, *common]
 
   base-alpine-dev-amd64:
@@ -135,7 +151,7 @@ services:
     platform: linux/arm64
 
   base-alpine-prod:
-    image: ghcr.io/armando-fandango/ezdev:0.11-base-alpine-prod
+    image: ghcr.io/armando-fandango/ezdev:0.15-base-alpine-prod
     <<: [*base-command, *common]
 
   base-alpine-prod-amd64:
@@ -150,10 +166,22 @@ services:
 
 ##### web images
 
+  nginx-alpine-prod:
+    extends:
+      service: base-alpine-prod
+    image: ghcr.io/armando-fandango/ezdev:0.13-nginx-alpine-prod
+    <<: [*common, *nginx-command]
+
+  certbot-alpine-prod:
+    extends:
+      service: base-alpine-prod
+    image: ghcr.io/armando-fandango/ezdev:0.16-certbot-alpine-prod
+    <<: [*common, *certbot-command]
+
   php-alpine-dev:
     extends:
       service: base-alpine-dev
-    image: ghcr.io/armando-fandango/ezdev:0.12-php-alpine-dev
+    image: ghcr.io/armando-fandango/ezdev-php:1.0.0-alpine-dev
     <<: [*common, *php-command]
 
   php-alpine-dev-amd64:
@@ -169,7 +197,7 @@ services:
   php-alpine-prod:
     extends:
       service: base-alpine-dev
-    image: ghcr.io/armando-fandango/ezdev:0.12-php-alpine-prod
+    image: ghcr.io/armando-fandango/ezdev-php:1.0.0-alpine-prod
     <<: [*common, *php-command]
 
   php-alpine-prod-amd64:
@@ -185,7 +213,7 @@ services:
   node-alpine-dev:
     extends:
       service: base-alpine-dev
-    image: ghcr.io/armando-fandango/ezdev:0.12-node-alpine-dev
+    image: ghcr.io/armando-fandango/ezdev:0.16-node-alpine-dev
     <<: [*common, *node-command]
 
   node-alpine-dev-amd64:
@@ -199,10 +227,8 @@ services:
     platform: linux/arm64
 
   node-alpine-prod:
-    extends:
-      service: base-alpine-dev
-    image: ghcr.io/armando-fandango/ezdev:0.12-node-alpine-prod
-    <<: [*common, *node-command]
+    image: ghcr.io/armando-fandango/ezdev:0.16-node-alpine-prod
+    <<: [*common]
 
   node-alpine-prod-amd64:
     extends:
@@ -217,7 +243,7 @@ services:
   node-debian-dev:
     extends:
       service: base-debian-dev
-    image: ghcr.io/armando-fandango/ezdev:0.12-node-debian-dev
+    image: ghcr.io/armando-fandango/ezdev:0.16-node-debian-dev
     <<: [*common, *node-command]
 
   node-debian-dev-amd64:
@@ -233,7 +259,7 @@ services:
   node-debian-qa:
     extends:
       service: base-debian-dev
-    image: ghcr.io/armando-fandango/ezdev:0.12-node-debian-qa
+    image: ghcr.io/armando-fandango/ezdev:0.16-node-debian-qa
     <<: [*common, *node-qa-command]
 
   node-debian-qa-amd64:
@@ -251,7 +277,7 @@ services:
   conda:
     extends:
       service: dev-base
-    image: ghcr.io/armando-fandango/ezdev/ezdev:0.7-conda-bullseye-slim
+    image: ghcr.io/armando-fandango/ezdev:0.13-conda-bullseye-slim
     command: bash -c "lsb_release -a; 
               cmake --version | head -1; 
               echo `which python` `python -V`;
@@ -261,43 +287,22 @@ services:
   conda-debian-dev:
     extends:
       service: base-debian-dev
-    image: ghcr.io/armando-fandango/ezdev/ezdev:0.8-conda-debian-dev
+    image: ghcr.io/armando-fandango/ezdev-conda:1.0.2-debian-dev
     <<: [*common, *conda-command]
 
   conda-jupyter-debian-dev:
     extends:
       service: base-debian-dev
-    image: ghcr.io/armando-fandango/ezdev/ezdev:0.8-conda-jupyter-debian-dev
+    image: ghcr.io/armando-fandango/ezdev:0.15-conda-jupyter-debian-dev
     <<: [*common, *conda-command]
-
-  conda-with-jupyter:
-    extends:
-      service: dev-base
-    image: ghcr.io/armando-fandango/ezdev/ezdev:0.7-conda-with-jupyter-bullseye-slim
-    command: bash -c "lsb_release -a; 
-              cmake --version | head -1; 
-              echo `which python` `python -V`;
-              echo `which conda` `conda -V`;
-              echo `which mamba` `mamba -V`;"
 
   conda-jupyter-service-debian-dev:
     extends:
       service: base-debian-dev
-    image: ghcr.io/armando-fandango/ezdev/ezdev:0.8-conda-jupyter-service-debian-dev
+    image: ghcr.io/armando-fandango/ezdev:0.15-conda-jupyter-service-debian-dev
     <<: [*common, *conda-command]
     ports:
       - "${HOST_JUPYTER_PORT:-8888}:8888"
-
-  iot:
-    extends:
-      service: dev-base
-    image: ghcr.io/armando-fandango/ezdev/ezdev:0.7-iot-bullseye-slim
-    command: bash -c "ls"
-  #  build: 
-  #    context: .
-  #    dockerfile: dockerfiles/Dockerfile-iot-debian1104
-  #    args:
-  #      from: ghcr.io/armando-fandango/ezdev/ezdev:0.6-base-bullseye-slim
 
   ai-pytorch:
     extends:

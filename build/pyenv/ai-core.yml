@@ -1,0 +1,43 @@
+channels:
+  - conda-forge
+dependencies:
+  - numpy
+  - scipy
+  - pandas
+  - mkl
+  - libblas=*=*mkl
+
+# visualization
+  - matplotlib
+  - seaborn
+  - graphviz
+  - pydot
+
+# sklearn
+  - scikit-learn
+  - scikit-image
+  - scikit-optimize
+  - scikit-fmm
+
+# optimization
+  - optuna
+  - hyperopt
+
+# xai
+  - lime
+  - shap
+  - onnx
+  - onnxruntime
+  - onnxconverter-common
+  - safetensors
+
+# image-data
+  - opencv
+  - pydicom                 # medical imaging
+  - kornia
+  - albumentations
+
+# UI
+  - gradio
+  - streamlit
+  

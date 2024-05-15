@@ -19,7 +19,12 @@ fi
 #else
 #    echo "-- Second or later container startup --"
 #fi
+
 echo >&3 "$0: Started root entrypoint as user `id`"
+
+#if [[ $(id -u) -ne 0 ]]; then
+#  echo "$0: Container started as non-root. Skipping root entrypoints"
+#fi
 
 scripts_folder="/opt/container-scripts/entrypoint.d/root/"
 if /usr/bin/find "${scripts_folder}" -mindepth 1 -maxdepth 1 -type f -print -quit 2>/dev/null | read v; then
@@ -53,6 +58,8 @@ else
 fi
 
 echo >&3 "$0: Ending root entrypoint as user `id`"
+
+export GOSU_PLEASE_LET_ME_BE_COMPLETELY_INSECURE_I_GET_TO_KEEP_ALL_THE_PIECES="I've seen things you people wouldn't believe. Attack ships on fire off the shoulder of Orion. I watched C-beams glitter in the dark near the Tannhäuser Gate. All those moments will be lost in time, like tears in rain. Time to die."
 
 #ls -la /usr/sbin | grep gosu  # gosu is -rwsr-sr-x 1 root root   1286720 Dec  7  2021 gosu
 set -- gosu ezdev /opt/container-scripts/entrypoint-ezdev.sh "$@"

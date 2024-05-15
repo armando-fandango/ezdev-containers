@@ -9,9 +9,7 @@ case ":$PATH:" in
 esac
 # pnpm end
 
-# first arg is `-f` or `--some-option`
+# first arg is `-f` or `--some-option` or is not a system command
 if [ "${1#-}" != "${1}" ] || [ -z "$(command -v "${1}")" ] || { [ -f "${1}" ] && ! [ -x "${1}" ]; }; then
 	set -- node "$@"
 fi
-
-exec "$@"

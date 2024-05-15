@@ -1,0 +1,17 @@
+ARG from
+FROM ${from}
+LABEL org.opencontainers.image.authors="armando@cortixly.ai"
+
+ENV DEBIAN_FRONTEND=noninteractive
+#ENV TZ=UTC
+#RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+WORKDIR /root/
+USER root
+SHELL ["/bin/bash","-c"]
+
+COPY container-scripts/30-install-nvidia.sh /opt/container-scripts/entrypoint.d/
+
+#RUN echo "source /opt/py/etc/profile.d/conda.sh && conda activate base" >> /opt/container-scripts/entrypoint.d/10-env.sh
+ENTRYPOINT ["/opt/container-scripts/entrypoint.sh"]
+CMD ["bash"]

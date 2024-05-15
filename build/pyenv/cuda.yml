@@ -1,0 +1,15 @@
+# tis is moved to pytorch.yml for now
+# channels:
+#  - nvidia
+#  - conda-forge
+# dependencies:
+#  - cuda-toolkit=11.7
+#  - cudatoolkit-dev=11.7
+#  - cuda-cudart=11.7
+#  - cudnn
+#  - nccl
+#  - cupy
+#  - cutensor
+#  - cusparselt
+#  - mkl
+#  - libblas=*=*mkl

@@ -2,18 +2,19 @@ Containers for ezdev
 ====================
 docker compose build --progress plain base
 
-# base builds 
-# docker buildx bake --push --set *.platform=linux/amd64,linux/arm64 base-alpine-dev base-alpine-prod base-debian-dev base-ubuntu-dev
-# docker compose build --progress plain node-alpine-dev
-Build and Test:
+- base builds 
+- docker buildx bake --push --set *.platform=linux/amd64,linux/arm64 base-alpine-dev base-alpine-prod base-debian-dev base-ubuntu-dev
+- docker compose build --progress plain node-alpine-dev
+
+## Build and Test:
 ```bash
 ARCH="amd64"
-ARCH="arm64"
-docker buildx bake --load --set *.platform=linux/$ARCH $IMAGE;
-docker compose -f docker-compose-dev.yml run --rm $IMAGE-$ARCH
+docker buildx bake --load $IMAGE;
+docker compose build --progress-plain $IMAGE;
+docker compose -f compose-dev.yml run --rm $IMAGE-$ARCH
 ```
 
-IMAGES:
+## Images:
 ```bash
 IMAGE="base-alpine-dev"
 IMAGE="base-alpine-prod" 
@@ -28,7 +29,7 @@ IMAGE="node-alpine-prod"
 IMAGE="node-debian-dev"
 IMAGE="node-debian-qa"
 ```
-Final build:
+## Final build:
 ```bash
 docker buildx bake --push --set *.platform=linux/amd64,linux/arm64 $IMAGE;
 ```
@@ -57,9 +58,9 @@ For windows:
     ```
 - Connect VSCode to wsl, and then open the project folder, and then open in container
 
-# docker compose --progress plain -f docker-compose-build.yml build base
-# docker compose -f docker-compose-build.yml push ai-pytorch ai-tflm ai-tflm-with-jupyter-service conda conda-with-jupyter conda-with-jupyter-service base node iot
+- docker compose --progress plain -f docker-compose-build.yml build base
+- docker compose -f docker-compose-build.yml push ai-pytorch ai-tflm ai-tflm-with-jupyter-service conda conda-with-jupyter conda-with-jupyter-service base node iot
 
-# export DUID="$(id -u)"; export DGID="$(id -g)"
+- export DUID="$(id -u)"; export DGID="$(id -g)"
 
 

@@ -1,0 +1,14 @@
+[Unit]
+Description=Jupyter Lab Service
+After=syslog.target network.target
+
+[Service]
+User=ezdev
+Group=ezdev
+WorkingDirectory=/workspace
+Environment="PATH='/opt/py/bin:$PATH'"
+ExecStart=/bin/bash -c "jupyter lab --ip='*' --NotebookApp.token='' --NotebookApp.password='' --no-browser"
+#--port 8888 --allow-root
+
+[Install]
+WantedBy=multi-user.target

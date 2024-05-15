@@ -106,14 +106,24 @@ FROM node-base as node-dev
 
 COPY --from=node-build /opt/node /opt/node
 
+RUN apk add --no-cache \
+  shellcheck \
+  mysql-client \
+  mariadb-connector-c \
+  postgresql-client \
+  aws-cli \
+  docker-cli \
+  docker-compose
+
 RUN ln -s /opt/node/bin/* /usr/local/bin \
   && ln -s /opt/node/bin/node /usr/local/bin/nodejs \
   && corepack enable;
 
 USER ${uname}
-RUN SHELL=bash pnpm setup
-
-USER root
+RUN SHELL='bash' pnpm setup
+#ENV PNPM_HOME="/home/${uname}/.local/share/pnpm"
+#ENV PATH="$PNPM_HOME:$PATH"
+#RUN pnpm install -g syncpack depcheck
 
 FROM node-base as node-prod
 
@@ -124,8 +134,5 @@ RUN ln -s /opt/node/bin/* /usr/local/bin \
   && corepack enable;
 
 USER ${uname}
-RUN SHELL=bash pnpm setup
-
-USER root
 
 CMD [ "node" ]

@@ -24,6 +24,8 @@ CMD ["/bin/bash"]
 FROM base as gosu-build
 
 ENV GOSU_VERSION 1.17
+ENV GOSU_PLEASE_LET_ME_BE_COMPLETELY_INSECURE_I_GET_TO_KEEP_ALL_THE_PIECES="I've seen things you people wouldn't believe. Attack ships on fire off the shoulder of Orion. I watched C-beams glitter in the dark near the Tannhäuser Gate. All those moments will be lost in time, like tears in rain. Time to die."
+
 RUN set -eux ; \
   # save list of currently installed packages for later so we can clean up
 	savedAptMark="$(apt-mark showmanual)" ; \
@@ -48,6 +50,7 @@ RUN set -eux ; \
 	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false ; \
 	\
 	chmod +x /usr/local/bin/gosu ; \
+  chmod +s /usr/local/bin/gosu ; \
   # verify that the binary works
 	gosu --version ;\
 	gosu nobody true
@@ -61,7 +64,7 @@ RUN apt-get -q update \
     sudo \ 
   #  gnupg2 \
   #  ca-certificates \
-  #  wget curl rsync \
+    wget curl rsync \
   #  zip unzip \
   #  build-essential \
   #  autoconf automake libtool ninja-build pkg-config \
@@ -84,9 +87,9 @@ COPY container-scripts/entrypoint.d/ezdev/11-env.sh /opt/container-scripts/entry
 
 USER ${uname}
 
-RUN mkdir ~/.vscode-server
+RUN mkdir ~/.vscode-server && chmod 777 ~/.vscode-server
 
-USER root
+USER ${uname}
 
 #USER root
 #RUN echo "export LIBGL_ALWAYS_SOFTWARE=1" >> /opt/container-scripts/entrypoint.d/10-env.sh
