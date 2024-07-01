@@ -2,6 +2,8 @@ ARG from
 FROM ${from} as certbot-base
 LABEL org.opencontainers.image.authors="armando.ucf@gmail.com"
 
+ARG uname=ezdev
+
 FROM certbot-base as certbot-prod
 USER root
 RUN apk add --no-cache certbot certbot-nginx && \
@@ -9,7 +11,8 @@ RUN apk add --no-cache certbot certbot-nginx && \
     #chmod +x /opt/container-scripts/entrypoint.d/ezdev/50-cron-daemon.sh && \
     chmod u+s /usr/bin/crontab 
     #mkdir /etc/letsencrypt
-USER ezdev
+USER ${uname}
+WORKDIR /home/${uname}
 #RUN echo "0 12 * * * /usr/bin/certbot renew --quiet" > /tmp/crontab.tmp && \
 #    crontab /tmp/crontab.tmp && \
 #    rm /tmp/crontab.tmp

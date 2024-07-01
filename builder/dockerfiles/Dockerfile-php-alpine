@@ -376,6 +376,7 @@ COPY container-scripts/entrypoint.d/ezdev/30-php.sh /opt/container-scripts/entry
 CMD [ "php-fpm" ]
 
 USER ${uname}
+WORKDIR /home/${uname}
 
 FROM php-build-fpm as php-dev
 
@@ -400,4 +401,4 @@ COPY container-scripts/entrypoint.d/ezdev/30-php.sh /opt/container-scripts/entry
 CMD [ "php-fpm" ]
 
 USER ${uname}
-
+WORKDIR /home/${uname}

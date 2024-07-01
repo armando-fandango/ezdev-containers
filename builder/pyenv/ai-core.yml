@@ -37,6 +37,15 @@ dependencies:
   - kornia
   - albumentations
 
+# text-data
+  - pypdf
+  - node2vec
+
+# graphs
+  - networkx
+  - igraph
+  - pygraphviz
+
 # UI
   - gradio
   - streamlit

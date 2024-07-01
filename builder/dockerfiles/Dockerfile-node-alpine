@@ -113,13 +113,14 @@ RUN apk add --no-cache \
   postgresql-client \
   aws-cli \
   docker-cli \
-  docker-compose
+  docker-compose 
 
 RUN ln -s /opt/node/bin/* /usr/local/bin \
   && ln -s /opt/node/bin/node /usr/local/bin/nodejs \
   && corepack enable;
 
 USER ${uname}
+WORKDIR /home/${uname}
 RUN SHELL='bash' pnpm setup
 #ENV PNPM_HOME="/home/${uname}/.local/share/pnpm"
 #ENV PATH="$PNPM_HOME:$PATH"
@@ -134,5 +135,6 @@ RUN ln -s /opt/node/bin/* /usr/local/bin \
   && corepack enable;
 
 USER ${uname}
+WORKDIR /home/${uname}
 
 CMD [ "node" ]

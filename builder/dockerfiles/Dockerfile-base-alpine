@@ -66,12 +66,15 @@ RUN set -x \
 		git git-lfs \
 		openssh \
 		rsync \ 
+		jq \
+		curl \
 		busybox-extras \
 	&& echo "${uname} ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/${uname} 
 
 COPY --from=gosu-build /usr/local/bin/gosu /usr/local/bin/gosu
 
 USER ${uname}
+WORKDIR /home/${uname}
 
 RUN mkdir ~/.vscode-server && chmod 777 ~/.vscode-server
 
@@ -85,3 +88,4 @@ RUN set -x \
 COPY --from=gosu-build /usr/local/bin/gosu /usr/local/bin/gosu
 
 USER ${uname}
+WORKDIR /home/${uname}

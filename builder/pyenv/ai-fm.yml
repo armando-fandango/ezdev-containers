@@ -1,6 +1,5 @@
 channels:
   - huggingface
-  - fastai
   - conda-forge
 dependencies:
   - accelerate
@@ -10,4 +9,12 @@ dependencies:
   - openai
   - transformers
   - tokenizers
-  
+  - langchain
+  - llama-index
+  - tiktoken
+  - peft
+  - wandb  # for logging
+  - deepspeed
+  - sentencepiece
+  - llama-cpp-python
+

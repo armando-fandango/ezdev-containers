@@ -2,9 +2,11 @@ channels:
   - conda-forge
 dependencies:
   - tqdm
+  - pydantic
   - pytest
   - pytest-cov
   - python-dotenv
+  - pytest-dotenv
 
 # linters
   - flake8
@@ -33,5 +35,17 @@ dependencies:
   - sphinx-togglebutton
   - myst-parser
 
+# cloud
+#  - boto3
+#  - awscli
+#  - azure-cli-core
+#  - azure-storage-blob
+#  - azure-storage-file-datalake
+#  - azure-storage-file-share
+#  - azure-storage-queue
+#  - azure-storage-blob
+#  - azure-storage-file-datalake
+#  - google-cloud-sdk
+#  - gcsfs
 
 

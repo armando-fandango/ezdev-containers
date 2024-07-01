@@ -210,7 +210,8 @@ ez_install_mamba () {
   echo Installing mamba in : $mamba_dir
   # get the releasefrom here: https://github.com/conda-forge/miniforge/releases
   #export py_installer_url="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
-  export py_installer_url="https://github.com/conda-forge/miniforge/releases/download/24.1.2-0/Miniforge3-24.1.2-0-$(uname)-$(uname -m).sh"
+  #export py_installer_url="https://github.com/conda-forge/miniforge/releases/download/24.1.2-0/Miniforge3-24.1.2-0-$(uname)-$(uname -m).sh"
+  export py_installer_url="https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Miniforge-pypy3-24.3.0-0-$(uname)-$(uname -m).sh"
   wget -nv ${py_installer_url} -O py_installer.sh && \
   #curl -o Miniconda.sh -O https://repo.anaconda.com/miniconda/Miniconda3-4.6.14-Linux-x86_64.sh && \
     chmod +x py_installer.sh && \

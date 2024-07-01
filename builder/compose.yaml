@@ -165,7 +165,7 @@ services:
 ##### ai images
 
   conda-debian-dev:
-    image: ghcr.io/armando-fandango/ezdev-conda:1.0.2-debian-dev
+    image: ghcr.io/armando-fandango/ezdev-conda:1.1.0-debian-dev
     build: 
       context: .
       dockerfile: dockerfiles/Dockerfile-conda-debian
@@ -174,7 +174,7 @@ services:
         from: *base-debian-dev-image
 
   conda-jupyter-debian-dev:
-    image: ghcr.io/armando-fandango/ezdev-conda:1.0.2-jupyter-debian-dev
+    image: ghcr.io/armando-fandango/ezdev-conda:1.1.0-jupyter-debian-dev
     build: 
       context: .
       dockerfile: dockerfiles/Dockerfile-conda-debian
@@ -183,7 +183,7 @@ services:
         from: *base-debian-dev-image
 
   conda-jupyter-service-debian-dev:
-    image: ghcr.io/armando-fandango/ezdev-conda:1.0.2-jupyter-service-debian-dev
+    image: ghcr.io/armando-fandango/ezdev-conda:1.1.0-jupyter-service-debian-dev
     build: 
       context: .
       dockerfile: dockerfiles/Dockerfile-conda-debian
@@ -210,7 +210,7 @@ services:
         from: ghcr.io/armando-fandango/ezdev-conda:1.0.2-jupyter-service-debian-dev
   
   ai-iot-tflm-debian-dev:
-    image: ghcr.io/armando-fandango/ezdev-ai:1.0.2-iot-tflm-debian-dev
+    image: ghcr.io/armando-fandango/ezdev-ai:1.0.3-iot-tflm-debian-dev
     build: 
       context: .
       dockerfile: dockerfiles/Dockerfile-iot-debian
@@ -227,29 +227,29 @@ services:
   #      from: ghcr.io/armando-fandango/ezdev:0.16-conda-debian-dev
 
   ai-pytorch-debian-dev:
-    image: ghcr.io/armando-fandango/ezdev-ai:1.0.1-pytorch-debian-dev
+    image: ghcr.io/armando-fandango/ezdev-ai:1.0.3-pytorch-debian-dev
     build: 
       context: .
       dockerfile: dockerfiles/Dockerfile-ai-debian
       target: ai-pytorch
       args:
-        from: ghcr.io/armando-fandango/ezdev:0.16-conda-jupyter-service-debian-dev
+        from: ghcr.io/armando-fandango/ezdev-conda:1.0.2-jupyter-service-debian-dev
 
   ai-fm-pytorch-debian-dev:
-    image: ghcr.io/armando-fandango/ezdev-ai:1.0.1-fm-pytorch-debian-dev
+    image: ghcr.io/armando-fandango/ezdev-ai:1.0.3-fm-pytorch-debian-dev
     build: 
       context: .
       dockerfile: dockerfiles/Dockerfile-ai-debian
       target: ai-pytorch-fm
       args:
-        from: ghcr.io/armando-fandango/ezdev:0.16-conda-jupyter-service-debian-dev
+        from: ghcr.io/armando-fandango/ezdev-conda:1.0.2-jupyter-service-debian-dev
 
   ai-iot-pytorch-debian-dev:
-    image: ghcr.io/armando-fandango/ezdev-ai:1.0.1-iot-pytorch-debian-dev
+    image: ghcr.io/armando-fandango/ezdev-ai:1.0.3-iot-pytorch-debian-dev
     build: 
       context: .
       dockerfile: dockerfiles/Dockerfile-iot-debian
       args:
-        from: ghcr.io/armando-fandango/ezdev-ai:1.0.1-pytorch-debian-dev
+        from: ghcr.io/armando-fandango/ezdev-ai:1.0.3-pytorch-debian-dev
 
   

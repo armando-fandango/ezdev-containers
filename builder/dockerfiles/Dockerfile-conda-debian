@@ -42,7 +42,7 @@ RUN conda config --system --set auto_activate_base true \
     && mamba env config vars set MAMBA_NO_BANNER=1 \
     && mamba init $(basename "${SHELL}")
 
-RUN mamba env update -n ${venv} --file  /root/core.yml \
+RUN mamba env update -v -n ${venv} --file  /root/core.yml \
   && mamba clean -itcly \
   && rm -rf /root/core.yml 
 
@@ -57,6 +57,7 @@ RUN ${mamba_dir}/bin/conda config --system --set auto_activate_base true \
     && ${mamba_dir}/bin/mamba init $(basename "${SHELL}")
 
 USER ${uname}
+WORKDIR /home/${uname}
 #ENV HOME=/home/${uname}
 #ENV MAMBA_NO_BANNER=1
 #ENV PATH=${mamba_dir}/bin:$PATH
@@ -68,7 +69,7 @@ FROM conda as conda-jupyter-build
 USER root
 
 COPY pyenv/jupyter.yml /root/jupyter.yml
-RUN mamba env update -n ${venv} --file /root/jupyter.yml && \
+RUN mamba env update -v -n ${venv} --file /root/jupyter.yml && \
   echo "Configuring jupyter..." && \
   jupyter labextension disable "@jupyterlab/apputils-extension:announcements" && \
   jupyter labextension enable "@jupyterlab/debugger" && \
@@ -98,6 +99,7 @@ COPY container-scripts/jn.sh /opt/py/bin/jn
 COPY container-scripts/jl.sh /opt/py/bin/jl
 
 USER ${uname}
+WORKDIR /home/${uname}
 
 FROM conda-jupyter as conda-jupyter-service
 
@@ -109,3 +111,4 @@ COPY container-scripts/entrypoint.d/ezdev/22-jupyter.sh /opt/container-scripts/e
 #ENTRYPOINT ["/opt/container-scripts/entrypoint.sh"]
 #CMD ["bash"]
 USER ${uname}
+WORKDIR /home/${uname}

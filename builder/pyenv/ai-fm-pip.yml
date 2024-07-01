@@ -1,0 +1,11 @@
+channels:
+  - conda-forge
+dependencies:
+  - pip:
+    - xformers  # or in conda xformers::xformers
+    - trl
+    - bitsandbytes
+    - neural-compressor # or in conda intel::neural-compressor
+    - deeplake
+    - cohere
+    

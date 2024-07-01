@@ -18,9 +18,11 @@ USER root
 
 RUN apt-get -q update \
     && apt-get -qq install -y --no-install-recommends \
-      xxd \ 
+      xxd ca-certificates \ 
     && apt-get -q autoremove --purge && apt-get -q clean && rm -rf /var/lib/apt/lists/* \
     && rm -rf /usr/share/doc/ && rm -rf /usr/share/man/ && rm -rf /usr/share/locale/ \
+    && update-ca-certificates \
+    && curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh -s 0.32.3 \
     # add the dialout group to user uname:gname with uid:gid
     && usermod -a -G dialout ${uname}
 
@@ -28,6 +30,10 @@ COPY pyenv/iot.yml /root/
 RUN (mamba env update -n ${venv} --file /root/iot.yml) && (mamba clean -itcly && rm -rf /root/iot.yml) || (pip3 install --no-cache-dir pyserial)
 
 USER ${uname}
+WORKDIR /home/${uname}
+RUN arduino-cli config init --additional-urls "https://espressif.github.io/arduino-esp32/package_esp32_index.json" --config-file /home/${uname}/.arduino15/arduino-cli.yaml \
+&& arduino-cli core update-index \
+&& arduino-cli core install esp32:esp32@2.0.9
 
 #RUN echo "source /opt/py/etc/profile.d/conda.sh && conda activate base" >> /opt/container-scripts/entrypoint.d/10-env.sh
 #ENTRYPOINT ["/opt/container-scripts/entrypoint.sh"]

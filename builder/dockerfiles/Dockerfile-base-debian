@@ -86,10 +86,8 @@ COPY container-scripts/entrypoint.d/root/10-modify-ezdev.sh /opt/container-scrip
 COPY container-scripts/entrypoint.d/ezdev/11-env.sh /opt/container-scripts/entrypoint.d/ezdev/
 
 USER ${uname}
-
+WORKDIR /home/${uname}
 RUN mkdir ~/.vscode-server && chmod 777 ~/.vscode-server
-
-USER ${uname}
 
 #USER root
 #RUN echo "export LIBGL_ALWAYS_SOFTWARE=1" >> /opt/container-scripts/entrypoint.d/10-env.sh
