@@ -1,0 +1,55 @@
+# ucf-tdm
+
+x-py-command: &py-command
+  command: bash -c 
+          "cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2;  
+          echo `which python` `python -V`;
+          pip show apache-tvm torch keras;"
+
+x-conda-command: &conda-command
+  command: bash -c 
+          "cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2;  
+          echo `which python` `python -V`;
+          echo `which conda` `conda -V`;
+          echo `which mamba` `mamba -V`;"
+
+x-wait-command: &wait-command
+  command: bash -c 
+          "while sleep 1000; do :; done;"
+
+x-common: &common
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - .:/workspace
+      - /data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /workspace
+    env_file: .env
+    user: ezdev:ezdev
+
+services:
+
+  ucf-tdm-py-cpu-debian-dev:
+    <<: [*py-command, *common]
+    ports:
+      - "${HOST_JUPYTER_PORT:-8888}:8888"
+    image: ghcr.io/armando-fandango/ucf-tdm:2.0.1-py-cpu-debian-dev
+    build: 
+      context: .
+      dockerfile: ucf-tdm-debian.Dockerfile
+      target: py-cpu-debian-final
+      args:
+        from: ghcr.io/armando-fandango/ezdev-py:2.0.0-310-jupyter-service-debian-dev
+
+  ucf-tdm-py-gpu-debian-dev:
+    <<: [*py-command, *common]
+    ports:
+      - "${HOST_JUPYTER_PORT:-8888}:8888"
+    image: ghcr.io/armando-fandango/ucf-tdm:2.0.1-py-gpu-debian-dev
+    build: 
+      context: .
+      dockerfile: ucf-tdm-debian.Dockerfile
+      target: py-gpu-debian-final
+      args:
+        from: ghcr.io/armando-fandango/ezdev-py:2.0.0-310-jupyter-service-debian-dev

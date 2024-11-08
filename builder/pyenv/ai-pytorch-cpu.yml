@@ -1,0 +1,17 @@
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - pytorch==2.4.0
+  - cpuonly
+  - faiss-cpu
+  - torchdata
+  - torchvision
+  - torchaudio
+  - torchtext
+  - botorch
+  - captum
+  - ignite
+
+  

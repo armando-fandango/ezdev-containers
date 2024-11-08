@@ -1,0 +1,16 @@
+
+
+
+apache-tvm==0.11.1
+keras==3.4.1
+matplotlib
+onnxruntime
+pandas
+pyserial
+safetensors
+scikit-learn
+tensorboard
+torchinfo
+torchviz
+wandb
+

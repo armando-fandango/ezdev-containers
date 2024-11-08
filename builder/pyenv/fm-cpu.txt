@@ -1,0 +1,7 @@
+
+
+
+faiss-cpu
+onnxruntime
+onnx
+onnxconverter-common

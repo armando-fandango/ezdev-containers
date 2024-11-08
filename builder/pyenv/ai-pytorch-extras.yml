@@ -2,10 +2,10 @@ channels:
   - fastai
   - conda-forge
 dependencies:
-  - keras==3.3.3
+  - keras==3.4.1
   - tensorboard
   - lightning
-  - fastai
+#  - fastai
   - torchinfo
   - wandb
   - pip:

@@ -1,3 +1,5 @@
+##### builder
+
 x-alpine-image: &alpine-image
     alpine:3.19.1  
 
@@ -18,6 +20,36 @@ x-base-alpine-dev-image: &base-alpine-dev-image
 
 x-base-alpine-prod-image: &base-alpine-prod-image
     ghcr.io/armando-fandango/ezdev:0.15-base-alpine-prod
+
+x-py-command: &py-command
+  command: bash -c 
+          "cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2;  
+          echo `which python` `python -V`;
+          echo `which jupyter-lab` `jupyter-lab -V`;
+          echo torch=`python -c 'import torch; print(torch.__version__)'`, with cuda=`python -c 'import torch; torch.cuda.is_available()'`;
+          "
+
+x-conda-command: &conda-command
+  command: bash -c 
+          "cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2;  
+          echo `which python` `python -V`;
+          echo `which conda` `conda -V`;
+          echo `which mamba` `mamba -V`;"
+
+x-wait-command: &wait-command
+  command: bash -c 
+          "while sleep 1000; do :; done;"
+
+x-common: &common
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - .:/workspace
+      - /data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /workspace
+    env_file: .env
+    user: ezdev:ezdev
 
 services:
 
@@ -44,6 +76,7 @@ services:
         from: *ubuntu-image
 
   base-debian-dev:
+    <<: [*common]
     image: *base-debian-dev-image
     build: 
       context: .
@@ -164,30 +197,118 @@ services:
 
 ##### ai images
 
-  conda-debian-dev:
-    image: ghcr.io/armando-fandango/ezdev-conda:1.1.0-debian-dev
+  py-alpine-dev:
+    image: ghcr.io/armando-fandango/ezdev-py:1.1.0-alpine-dev
     build: 
       context: .
-      dockerfile: dockerfiles/Dockerfile-conda-debian
-      target: conda
+      dockerfile: dockerfiles/Dockerfile-py-alpine
+      target: py-dev
+      args:
+        from: *base-alpine-dev-image
+
+  py-310-debian-dev:
+    <<: [*py-command, *common]
+    image: ghcr.io/armando-fandango/ezdev-py:2.0.0-310-debian-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-py-debian
+      target: py-310-final
       args:
         from: *base-debian-dev-image
 
-  conda-jupyter-debian-dev:
-    image: ghcr.io/armando-fandango/ezdev-conda:1.1.0-jupyter-debian-dev
+  py-312-debian-dev:
+    image: ghcr.io/armando-fandango/ezdev-py:2.0.0-312-debian-dev
     build: 
       context: .
-      dockerfile: dockerfiles/Dockerfile-conda-debian
-      target: conda-jupyter
+      dockerfile: dockerfiles/Dockerfile-py-debian
+      target: py-312-final
       args:
         from: *base-debian-dev-image
 
-  conda-jupyter-service-debian-dev:
-    image: ghcr.io/armando-fandango/ezdev-conda:1.1.0-jupyter-service-debian-dev
+  py-mamba-debian-dev:
+    image: ghcr.io/armando-fandango/ezdev-py:2.0.0-mamba-debian-dev
     build: 
       context: .
-      dockerfile: dockerfiles/Dockerfile-conda-debian
-      target: conda-jupyter-service
+      dockerfile: dockerfiles/Dockerfile-py-debian
+      target: mamba-final
+      args:
+        from: *base-debian-dev-image
+
+  py-jupyter-alpine-dev:
+    image: ghcr.io/armando-fandango/ezdev-py:1.1.0-jupyter-alpine-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-py-alpine
+      target: py-jupyter-dev
+      args:
+        from: *base-alpine-dev-image
+
+  py-310-jupyter-debian-dev:    
+    <<: [*py-command, *common]
+    ports:
+      - "${HOST_JUPYTER_PORT:-8888}:8888"
+    image: ghcr.io/armando-fandango/ezdev-py:2.0.0-310-jupyter-debian-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/py-debian.Dockerfile
+      target: py-jupyter
+      args:
+        from: ghcr.io/armando-fandango/ezdev-py:2.0.0-310-debian-dev
+
+  py-312-jupyter-debian-dev:
+    image: ghcr.io/armando-fandango/ezdev-py:2.0.0-312-jupyter-debian-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/py-debian.Dockerfile
+      target: py-jupyter
+      args:
+        from: ghcr.io/armando-fandango/ezdev-py:2.0.0-312-debian-dev
+
+  py-jupyter-mamba-debian-dev:
+    image: ghcr.io/armando-fandango/ezdev-py:2.0.0-jupyter-mamba-debian-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/py-debian.Dockerfile
+      target: mamba-jupyter
+      args:
+        from: *base-debian-dev-image
+
+  py-jupyter-service-alpine-dev:
+    image: ghcr.io/armando-fandango/ezdev-py:1.1.0-jupyter-service-alpine-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-py-alpine
+      target: py-jupyter-service-dev
+      args:
+        from: *base-alpine-dev-image
+
+  py-310-jupyter-service-debian-dev:
+    <<: [*py-command, *common]
+    ports:
+      - "${HOST_JUPYTER_PORT:-8888}:8888"
+    image: ghcr.io/armando-fandango/ezdev-py:2.0.0-310-jupyter-service-debian-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/py-debian.Dockerfile
+      target: py-jupyter-service
+      args:
+        from: ghcr.io/armando-fandango/ezdev-py:2.0.0-310-debian-dev
+
+  py-312-jupyter-service-debian-dev:
+    image: ghcr.io/armando-fandango/ezdev-py:2.0.0-312-jupyter-service-debian-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/py-debian.Dockerfile
+      target: py-jupyter-service
+      args:
+        from: ghcr.io/armando-fandango/ezdev-py:2.0.0-312-debian-dev
+
+  py-jupyter-service-mamba-debian-dev:
+    image: ghcr.io/armando-fandango/ezdev-py:2.0.0-jupyter-service-mamba-debian-dev
+    build: 
+      context: .
+      dockerfile: dockerfiles/Dockerfile-py-debian
+      target: mamba-jupyter-service
       args:
         from: *base-debian-dev-image
 
@@ -217,39 +338,29 @@ services:
       args:
         from: ghcr.io/armando-fandango/ezdev-ai:1.0.2-tflm-debian-dev
 
-  #ai-pytorch-debian-dev:
-  #  image: ghcr.io/armando-fandango/ezdev-ai:1.0.0-pytorch-debian-dev
-  #  build: 
-  #    context: .
-  #    dockerfile: dockerfiles/Dockerfile-ai-debian
-  #    target: ai-pytorch
-  #    args:
-  #      from: ghcr.io/armando-fandango/ezdev:0.16-conda-debian-dev
-
-  ai-pytorch-debian-dev:
-    image: ghcr.io/armando-fandango/ezdev-ai:1.0.3-pytorch-debian-dev
+  ai-fm-py-cpu-debian-dev:
+    <<: [*py-command, *common]
+    ports:
+      - "${HOST_JUPYTER_PORT:-8888}:8888"
+    image: ghcr.io/armando-fandango/ezdev-ai:2.0.0-fm-py-cpu-debian-dev
     build: 
       context: .
-      dockerfile: dockerfiles/Dockerfile-ai-debian
-      target: ai-pytorch
+      dockerfile: dockerfiles/ai-debian.Dockerfile
+      target: py-cpu-debian-final
       args:
-        from: ghcr.io/armando-fandango/ezdev-conda:1.0.2-jupyter-service-debian-dev
+        from: ghcr.io/armando-fandango/ezdev-py:2.0.0-310-jupyter-service-debian-dev
 
-  ai-fm-pytorch-debian-dev:
-    image: ghcr.io/armando-fandango/ezdev-ai:1.0.3-fm-pytorch-debian-dev
+  ai-fm-py-gpu-debian-dev:
+    <<: [*py-command, *common]
+    ports:
+      - "${HOST_JUPYTER_PORT:-8888}:8888"
+    image: ghcr.io/armando-fandango/ezdev-ai:2.0.0-fm-py-gpu-debian-dev
     build: 
       context: .
-      dockerfile: dockerfiles/Dockerfile-ai-debian
-      target: ai-pytorch-fm
+      dockerfile: dockerfiles/ai-debian.Dockerfile
+      target: py-gpu-debian-final
       args:
-        from: ghcr.io/armando-fandango/ezdev-conda:1.0.2-jupyter-service-debian-dev
+        from: ghcr.io/armando-fandango/ezdev-py:2.0.0-310-jupyter-service-debian-dev
 
-  ai-iot-pytorch-debian-dev:
-    image: ghcr.io/armando-fandango/ezdev-ai:1.0.3-iot-pytorch-debian-dev
-    build: 
-      context: .
-      dockerfile: dockerfiles/Dockerfile-iot-debian
-      args:
-        from: ghcr.io/armando-fandango/ezdev-ai:1.0.3-pytorch-debian-dev
 
   

@@ -1,0 +1,10 @@
+keras==3.4.1
+tensorboard
+lightning
+#  - fastai
+torchinfo
+wandb
+torchviz
+
+
+  

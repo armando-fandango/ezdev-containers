@@ -1,0 +1,10 @@
+
+
+
+bitsandbytes
+cohere
+deeplake
+lightrag
+neural-compressor # or in conda intel::neural-compressor
+trl
+xformers  # or in conda xformers::xformers

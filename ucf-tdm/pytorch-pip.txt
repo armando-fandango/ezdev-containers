@@ -1,0 +1,12 @@
+
+
+
+torch==2.4.1
+torchdata
+torchvision
+torchaudio
+torchtext
+#numpy<2
+
+# for mamba
+# pytorch-cuda==12.1

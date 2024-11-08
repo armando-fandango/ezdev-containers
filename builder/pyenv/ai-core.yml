@@ -26,9 +26,6 @@ dependencies:
 # xai
   - lime
   - shap
-  - onnx
-  - onnxruntime
-  - onnxconverter-common
   - safetensors
 
 # image-data
@@ -41,6 +38,9 @@ dependencies:
   - pypdf
   - node2vec
 
+# sql-data
+  - sqlalchemy
+
 # graphs
   - networkx
   - igraph
@@ -49,4 +49,16 @@ dependencies:
 # UI
   - gradio
   - streamlit
+
+# API
+  - fastapi
+  - uvicorn
+  - gunicorn
+  - django
+  - flask
   
+# cloud
+  - boto3
+  - awscli
+  - azure-core
+

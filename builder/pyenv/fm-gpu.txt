@@ -1,0 +1,7 @@
+
+
+
+faiss-gpu
+onnxruntime-gpu
+onnx
+onnxconverter-common

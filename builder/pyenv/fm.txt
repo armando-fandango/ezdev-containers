@@ -1,0 +1,31 @@
+
+
+accelerate
+anthropic
+datasets
+deepspeed
+diffusers
+google-generativeai
+groq
+huggingface_hub
+langchain
+langchain-core
+langchain-community
+langchain-text-splitters
+langchain-aws
+langchain-openai
+langchain-huggingface
+langgraph
+llama-index
+llama-cpp-python
+openai
+peft
+sentencepiece
+transformers
+tokenizers
+tiktoken
+
+# cpu/gpu specific
+# faiss
+
+

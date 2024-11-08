@@ -1,0 +1,68 @@
+ARG from
+FROM ${from} AS py-base
+LABEL org.opencontainers.image.authors="armando.ucf@gmail.com"
+
+ARG uname=ezdev
+ARG gname=ezdev
+ARG py_dir="/opt/py"
+ARG venv=""
+
+ENV PATH=${py_dir}/bin:$PATH
+# cannot remove LANG even though https://bugs.python.org/issue19846 is fixed
+# last attempted removal of LANG broke many users:
+# https://github.com/docker-library/python/pull/570
+ENV LANG C.UTF-8
+
+SHELL ["/bin/bash","-l","-c"]
+
+USER ${uname}
+WORKDIR /home/${uname}
+RUN echo -e "\nPATH=${py_dir}/bin:\$PATH\n" >> ~/.bashrc
+
+USER root
+#ENV HOME=/root
+RUN echo -e "\nPATH=${py_dir}/bin:\$PATH\n" >> ~/.bashrc
+
+
+FROM py-base AS py-310-build
+
+
+
+FROM py-base AS py-build
+
+ENV PYTHONUNBUFFERED=1
+RUN apk add --update --no-cache python3 py3-pip gcc g++ python3-dev musl-dev linux-headers rust cargo && \
+    ln -sf python3 /usr/bin/python && \
+    python3 -m venv ${py_dir}/${venv} && \
+    printf "\nexport PS1='\u@\h:\w\$ '\nsource ${py_dir}/${venv}/bin/activate\n" >> /opt/container-scripts/entrypoint.d/ezdev/20-py.sh
+
+COPY pyenv/core.txt /root/
+RUN source ${py_dir}/${venv}/bin/activate  && \
+    pip3 install --no-cache --upgrade -r /root/core.txt && \
+    rm /root/core.txt
+    
+FROM py-build AS py-jupyter-build
+
+COPY pyenv/jupyter.txt /root/
+RUN source ${py_dir}/${venv}/bin/activate && \
+    pip install --no-cache --upgrade -r /root/jupyter.txt && \
+    rm /root/jupyter.txt && \
+    echo "Configuring jupyter..." && \
+    jupyter labextension disable "@jupyterlab/apputils-extension:announcements" && \
+    jupyter labextension enable "@jupyterlab/debugger" && \
+    jupyter labextension enable "@jupyterlab/toc" && \
+    jupyter labextension enable "@jupyterlab/execute_time"
+
+FROM py-build AS py-dev
+
+USER ${uname}
+
+FROM py-jupyter-build AS py-jupyter-dev
+
+USER ${uname}
+
+FROM py-jupyter-build AS py-jupyter-service-dev
+
+COPY container-scripts/entrypoint.d/ezdev/22-jupyter.sh /opt/container-scripts/entrypoint.d/ezdev/
+
+USER ${uname}

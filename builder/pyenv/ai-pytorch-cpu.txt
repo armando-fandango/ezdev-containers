@@ -1,0 +1,13 @@
+pytorch==2.2.2
+cpuonly
+faiss-cpu
+onnxruntime
+torchdata
+torchvision
+torchaudio
+torchtext
+botorch
+captum
+ignite
+
+  

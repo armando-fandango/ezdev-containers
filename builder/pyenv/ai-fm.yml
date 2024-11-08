@@ -3,18 +3,31 @@ channels:
   - conda-forge
 dependencies:
   - accelerate
+  - anthropic
   - datasets
+  - deepspeed
   - diffusers
+# - faiss # included in pytorch-Xpu.yml
+  - google-generativeai
+  - groq
   - huggingface_hub
+  - langchain
+  - langchain-core
+  - langchain-community
+  - langchain-text-splitters
+  - langchain-aws
+  - langchain-openai
+  - langchain-huggingface
+  - langgraph
+  - llama-index
+  - llama-cpp-python
   - openai
+  - peft
+  - sentencepiece
   - transformers
   - tokenizers
-  - langchain
-  - llama-index
   - tiktoken
-  - peft
-  - wandb  # for logging
-  - deepspeed
-  - sentencepiece
-  - llama-cpp-python
+
+
+
 

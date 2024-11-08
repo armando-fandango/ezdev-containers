@@ -1,18 +1,17 @@
-channels:
-  - conda-forge
-dependencies:
-  - ipywidgets
+
+
+
+ipywidgets
 #  - ipykernel>=6.0.0
-  - ipytest
+ipytest
 #  - ipython>=8.0.0
 #  - jupyter_server
-  - jupyterlab=4.2.1
-  - jupyterlab-nvdashboard
-  - jupyterlab_execute_time
-  - jupyterlab_code_formatter
+jupyterlab==4.2.5
+jupyterlab_execute_time
+jupyterlab_code_formatter
 #  - jupyter_contrib_nbextensions
 #  - jupyter_nbextensions_configurator
-  - jupyter-resource-usage
+jupyter-resource-usage
 #  - jsonschema-with-format-nongpl
 #  - nbconvert
 #  - nodejs==18.15.0 # pinned due to pytorch 2.0.0.

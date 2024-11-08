@@ -1,10 +1,10 @@
 ARG from
-FROM ${from} as ai-base
+FROM ${from} AS ai-base
 LABEL org.opencontainers.image.authors="armando.ucf@gmail.com"
 
 ARG uname=ezdev
 ARG gname=ezdev
-ARG mamba_dir="/opt/py"
+ARG py_dir="/opt/py"
 ARG venv="base"
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -15,13 +15,62 @@ SHELL ["/bin/bash", "-l", "-c"]
 
 USER root
 
-FROM ai-base as ai-core-build
+FROM ai-base AS ai-base-py-alpine
+ARG py_dir="/opt/py"
+ARG venv=""
+
+FROM ai-base-py-alpine AS ai-core-build-py-alpine
+COPY pyenv/ai-core.txt /root/
+RUN source ${py_dir}/${venv}/bin/activate && \
+    pip install --no-cache --upgrade -r /root/ai-core.txt && \
+    rm -rf /root/ai-core.txt  
+
+FROM ai-core-build-py-alpine AS ai-pytorch-cpu-build-py-alpine
+COPY pyenv/ai-pytorch-cpu.txt /root/
+RUN source ${py_dir}/${venv}/bin/activate && \
+    pip install --no-cache --upgrade -r /root/ai-pytorch-cpu.txt && \
+    rm -rf /root/ai-pytorch-cpu.txt
+
+FROM ai-pytorch-cpu-build-py-alpine AS ai-pytorch-cpu-extras-build-py-alpine
+COPY pyenv/ai-pytorch-extras.txt /root/
+RUN source ${py_dir}/${venv}/bin/activate && \
+    pip install --no-cache --upgrade -r /root/ai-pytorch-extras.txt && \
+    rm -rf /root/ai-pytorch-extras.txt
+
+FROM ai-base AS ai-core-debian-build
+
+RUN apt-get update; \
+apt-get install -y --no-install-recommends \
+    build-essential \
+; \
+rm -rf /var/lib/apt/lists/*
+
+COPY pyenv/ai-core.txt /root/
+RUN pip install -r /root/ai-core.txt && \
+    rm -rf /root/ai-core.txt
+
+FROM ai-base AS ai-core-mamba-debian-build
+
+COPY pyenv/ai-core.txt /root/
+RUN mamba env update -n ${venv} --file /root/ai-core.txt && \
+    mamba clean -itcly && \
+    rm -rf /root/ai-core.txt
+
+FROM ai-core-debian-build AS ai-core-gpu-debian-build
 
 # pytorch has cuda added
-COPY pyenv/ai-core.yml /root/
-RUN mamba env update -n ${venv} --file /root/ai-core.yml && \
+COPY pyenv/ai-core-gpu.txt /root/
+RUN pip install -r /root/ai-core-gpu.txt && \
+    rm -rf /root/ai-core-gpu.txt
+
+FROM ai-core-debian-mamba-build AS ai-core-gpu-mamba-debian-build
+
+# pytorch has cuda added
+COPY pyenv/ai-core-gpu.txt /root/
+RUN mamba env update -n ${venv} --file /root/ai-core-gpu.txt && \
     mamba clean -itcly && \
-    rm -rf /root/ai-core.yml  
+    rm -rf /root/ai-core-gpu.txt
+
 #COPY pyenv/cuda.yml /root/pyenv/
 #RUN mamba env update -n ${venv} --file /root/pyenv/cuda.yml
 #COPY pyenv/ai-lm.yml /root/pyenv/
@@ -29,28 +78,47 @@ RUN mamba env update -n ${venv} --file /root/ai-core.yml && \
 #COPY pyenv/ai-lm-pip.yml /root/pyenv/
 #RUN mamba env update -n ${venv} --file /root/pyenv/ai-lm-pip.yml
 
-FROM ai-core-build as ai-pytorch-build
+FROM ai-core-build AS ai-pytorch-build
 
-COPY pyenv/ai-pytorch.yml /root/
-RUN mamba env update -n ${venv} --file /root/ai-pytorch.yml && \
+COPY pyenv/ai-pytorch-*.yml /root/
+RUN mamba env update -n ${venv} --file /root/ai-pytorch-gpu.yml && \
     mamba clean -itcly && \
-    rm -rf /root/ai-pytorch.yml
+    rm -rf /root/ai-pytorch-*.yml
 
-FROM ai-pytorch-build as ai-pytorch-extras-build
+FROM ai-core-build AS ai-pytorch-cpu-build
+
+COPY pyenv/ai-pytorch-*.yml /root/
+RUN mamba env update -n ${venv} --file /root/ai-pytorch-cpu.yml && \
+    mamba clean -itcly && \
+    rm -rf /root/ai-pytorch-*.yml
+
+FROM ai-pytorch-build AS ai-pytorch-extras-build
+
+COPY pyenv/ai-pytorch-extras.yml /root/
+RUN mamba env update -n ${venv} --file /root/ai-pytorch-extras.yml && \
+    mamba clean -itcly && \
+    rm -rf /root/ai-pytorch-extras.yml
+
+FROM ai-pytorch-cpu-build AS ai-pytorch-cpu-extras-build
 
 COPY pyenv/ai-pytorch-extras.yml /root/
 RUN mamba env update -n ${venv} --file /root/ai-pytorch-extras.yml && \
     mamba clean -itcly && \
     rm -rf /root/ai-pytorch-extras.yml
     
-    
-FROM ai-pytorch-extras-build as ai-pytorch-fm-build
+FROM ai-pytorch-extras-build AS ai-fm-pytorch-build
 COPY pyenv/ai-fm.yml /root/
 RUN mamba env update -n ${venv} --file /root/ai-fm.yml && \
     mamba clean -itcly && \
     rm -rf /root/ai-fm.yml
 
-FROM ai-core-build as ai-tflm-build
+FROM ai-pytorch-cpu-extras-build AS ai-fm-pytorch-cpu-build
+COPY pyenv/ai-fm.yml /root/
+RUN mamba env update -n ${venv} --file /root/ai-fm.yml && \
+    mamba clean -itcly && \
+    rm -rf /root/ai-fm.yml
+    
+FROM ai-core-build AS ai-tflm-build
 
 # install TF and TFLM
 
@@ -75,7 +143,7 @@ RUN apt-get -q update \
     && rm -rf /root/tensorflow.yml \
     && rm -rf /root/tflite-micro
 
-FROM ai-base as ai-tflm
+FROM ai-base AS ai-tflm
 
 # copy TF install
 
@@ -119,17 +187,44 @@ RUN apt-get -q update \
 
 USER ${uname}
 
-FROM ai-base as ai-pytorch
+FROM ai-base AS ai-pytorch
 
 COPY --from=ai-pytorch-extras-build ${mamba_dir} ${mamba_dir}
+RUN chmod -R o+rw ${mamba_dir}
+
+
 #RUN ln -s /opt/py/lib/python3.10/site-packages/tensorrt_libs/libnvinfer.so.8 /opt/py/lib/python3.10/site-packages/tensorrt_libs/libnvinfer.so.7
 #RUN ln -s /opt/py/lib/python3.10/site-packages/tensorrt_libs/libnvinfer_plugin.so.8 /opt/py/lib/python3.10/site-packages/tensorrt_libs/libnvinfer_plugin.so.7
 
 USER ${uname}
 
-FROM ai-base as ai-pytorch-fm
+FROM ai-base AS ai-fm-pytorch
 
-COPY --from=ai-pytorch-fm-build ${mamba_dir} ${mamba_dir}
+COPY --from=ai-fm-pytorch-build ${mamba_dir} ${mamba_dir}
+RUN chmod -R o+rw ${mamba_dir}
+#RUN ln -s /opt/py/libf/python3.10/site-packages/tensorrt_libs/libnvinfer.so.8 /opt/py/lib/python3.10/site-packages/tensorrt_libs/libnvinfer.so.7
+#RUN ln -s /opt/py/lib/python3.10/site-packages/tensorrt_libs/libnvinfer_plugin.so.8 /opt/py/lib/python3.10/site-packages/tensorrt_libs/libnvinfer_plugin.so.7
+
+USER ${uname}
+
+FROM ai-base AS ai-pytorch-cpu
+
+COPY --from=ai-pytorch-cpu-extras-build ${mamba_dir} ${mamba_dir}
+RUN chmod -R o+rw ${mamba_dir}
+
+USER ${uname}
+
+FROM ai-base-py-alpine AS ai-pytorch-cpu-py-alpine-dev
+
+COPY --from=ai-pytorch-cpu-extras-build-py-alpine ${py_dir} ${py_dir}
+RUN chmod -R o+rw ${py_dir}
+
+USER ${uname}
+
+FROM ai-base AS ai-fm-pytorch-cpu
+
+COPY --from=ai-fm-pytorch-cpu-build ${mamba_dir} ${mamba_dir}
+RUN chmod -R o+rw ${mamba_dir}
 #RUN ln -s /opt/py/libf/python3.10/site-packages/tensorrt_libs/libnvinfer.so.8 /opt/py/lib/python3.10/site-packages/tensorrt_libs/libnvinfer.so.7
 #RUN ln -s /opt/py/lib/python3.10/site-packages/tensorrt_libs/libnvinfer_plugin.so.8 /opt/py/lib/python3.10/site-packages/tensorrt_libs/libnvinfer_plugin.so.7
 

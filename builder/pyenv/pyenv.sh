@@ -195,6 +195,30 @@ ez_create_env () {
   trap '' INT
 }
 
+ez_install_venv () {
+  py_dir=${py_dir:-/opt/py}
+  #sudo mkdir $mamba_dir; sudo chown -R $USER $mamba_dir
+  trap ctrl_c INT
+  while [ $# -gt 0 ]; do
+     if [[ $1 == *"--"* ]]; then
+          param="${1/--/}"
+          declare "$param"="$2"
+          # echo $1 $2 // Optional to see the parameter:value result
+     fi
+    shift
+  done
+  echo Installing venv in : ${py_dir}
+    echo $PATH
+    pyenv --versions
+    python -m venv --copies "${py_dir}" && \
+    PATH=${py_dir}/bin:$PATH && \
+    echo "venv installed:" && \
+    which python && python -V
+  retval=$?
+  trap '' INT
+  return $retval
+}
+
 ez_install_mamba () {
   mamba_dir=${mamba_dir:-/opt/py}
   #sudo mkdir $mamba_dir; sudo chown -R $USER $mamba_dir
@@ -207,11 +231,14 @@ ez_install_mamba () {
      fi
     shift
   done
-  echo Installing mamba in : $mamba_dir
+  echo Installing mamba in : ${mamba_dir}
+  miniforge_ver=24.5.0-0
   # get the releasefrom here: https://github.com/conda-forge/miniforge/releases
   #export py_installer_url="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
   #export py_installer_url="https://github.com/conda-forge/miniforge/releases/download/24.1.2-0/Miniforge3-24.1.2-0-$(uname)-$(uname -m).sh"
-  export py_installer_url="https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Miniforge-pypy3-24.3.0-0-$(uname)-$(uname -m).sh"
+  #export py_installer_url="https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Miniforge-pypy3-24.3.0-0-$(uname)-$(uname -m).sh"
+  export py_installer_url="https://github.com/conda-forge/miniforge/releases/download/${miniforge_ver}/Miniforge3-${miniforge_ver}-$(uname)-$(uname -m).sh"
+  
   wget -nv ${py_installer_url} -O py_installer.sh && \
   #curl -o Miniconda.sh -O https://repo.anaconda.com/miniconda/Miniconda3-4.6.14-Linux-x86_64.sh && \
     chmod +x py_installer.sh && \

@@ -3,8 +3,9 @@ channels:
   - nvidia
   - conda-forge
 dependencies:
-  - pytorch==2.2.2
+  - pytorch==2.4.0
   - pytorch-cuda==12.1
+  - faiss-gpu
   - torchdata
   - torchvision
   - torchaudio
@@ -21,4 +22,5 @@ dependencies:
 #  - cusparselt
 #  - mkl
 #  - libblas=*=*mkl
-  
+
+#   - jupyterlab-nvdashboard

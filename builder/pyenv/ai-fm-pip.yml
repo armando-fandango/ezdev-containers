@@ -2,10 +2,11 @@ channels:
   - conda-forge
 dependencies:
   - pip:
-    - xformers  # or in conda xformers::xformers
-    - trl
     - bitsandbytes
-    - neural-compressor # or in conda intel::neural-compressor
-    - deeplake
     - cohere
+    - deeplake
+    - lightrag
+    - neural-compressor # or in conda intel::neural-compressor
+    - trl
+    - xformers  # or in conda xformers::xformers
     
