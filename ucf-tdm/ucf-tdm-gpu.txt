@@ -12,7 +12,11 @@ scikit-learn
 tensorboard
 torchinfo
 torchviz
+seaborn
 wandb
+mlflow
+optuna
+optuna-integration
 
 jupyterlab-nvdashboard
 
