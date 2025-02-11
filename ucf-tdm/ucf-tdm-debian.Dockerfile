@@ -49,6 +49,7 @@ RUN pip install -r /root/requirements.txt --index-url https://download.pytorch.o
 
 COPY ${project_name}-cpu.txt /root/requirements.txt
 RUN pip install -r /root/requirements.txt && \
+    sed -i "s|np.dtype(np.float_)|#np.dtype(np.float_)|g" /opt/py/lib/python3.10/site-packages/tvm/_ffi/runtime_ctypes.py && \
     rm -rf /root/requirements.txt
 
 FROM base AS py-gpu-debian-build
@@ -59,6 +60,7 @@ RUN pip install -r /root/requirements.txt && \
 
 COPY ${project_name}-gpu.txt /root/requirements.txt
 RUN pip install -r /root/requirements.txt && \
+    sed -i "s|np.dtype(np.float_)|#np.dtype(np.float_)|g" /opt/py/lib/python3.10/site-packages/tvm/_ffi/runtime_ctypes.py && \
     rm -rf /root/requirements.txt
 
 FROM base AS py-cpu-debian-final
