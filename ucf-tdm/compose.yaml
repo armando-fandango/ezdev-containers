@@ -34,7 +34,7 @@ services:
     <<: [*py-command, *common]
     ports:
       - "${HOST_JUPYTER_PORT:-8888}:8888"
-    image: ghcr.io/ucf-ist/ucf-tdm:2.0.3-py-cpu-debian-dev
+    image: ghcr.io/ucf-ist/ucf-tdm:2.0.4-py-cpu-debian-dev
     build: 
       context: .
       dockerfile: ucf-tdm-debian.Dockerfile
@@ -46,7 +46,7 @@ services:
     <<: [*py-command, *common]
     ports:
       - "${HOST_JUPYTER_PORT:-8888}:8888"
-    image: ghcr.io/ucf-ist/ucf-tdm:2.0.3-py-gpu-debian-dev
+    image: ghcr.io/ucf-ist/ucf-tdm:2.0.4-py-gpu-debian-dev
     build: 
       context: .
       dockerfile: ucf-tdm-debian.Dockerfile

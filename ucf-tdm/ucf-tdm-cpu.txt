@@ -12,6 +12,7 @@ scikit-learn
 tensorboard
 torchinfo
 torchviz
+torcheval
 seaborn
 wandb
 mlflow
